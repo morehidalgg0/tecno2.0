@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Sucursal {
+  id      String   @id @default(cuid())
+  nombre  String
+  ciudad  String
+  stocks  Stock[]
+  ordenes Orden[]
+}
+
+model Producto {
+  id        String   @id @default(cuid())
+  nombre    String
+  marca     String
+  categoria String
+  precio    Float
+  imagenUrl String
+  specs     Json     // e.g. {"pantalla": "6.1", "memoria": "128GB"}
+  activo    Boolean  @default(true)
+  stocks    Stock[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Stock {
+  productoId String
+  sucursalId String
+  cantidad   Int
+  producto   Producto @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  sucursal   Sucursal @relation(fields: [sucursalId], references: [id], onDelete: Cascade)
+
+  @@id([productoId, sucursalId])
+}
+
+model Orden {
+  id            String    @id @default(cuid())
+  productos     Json      // e.g. [{"id": "...", "nombre": "...", "precio": 100, "cantidad": 2}]
+  monto         Float
+  estado        String    @default("PENDIENTE") // PENDIENTE, APROBADO, RECHAZADO
+  mercadoPagoId String?   @unique
+  sucursalId    String?
+  sucursal      Sucursal? @relation(fields: [sucursalId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
