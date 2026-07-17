@@ -27,9 +27,15 @@ async function main() {
 
   // 2. Create Sucursales
   const sucursalesData = [
-    { nombre: "Sucursal Güemes", ciudad: "Mar del Plata" },
-    { nombre: "Sucursal Centro", ciudad: "Mar del Plata" },
-    { nombre: "Sucursal Palermo", ciudad: "CABA" },
+    { nombre: "Sucursal Güemes Central", ciudad: "Mar del Plata" },
+    { nombre: "Sucursal Güemes Express", ciudad: "Mar del Plata" },
+    { nombre: "Sucursal Peatonal", ciudad: "Mar del Plata" },
+    { nombre: "Sucursal Alem", ciudad: "Mar del Plata" },
+    { nombre: "Sucursal Paseo Sur", ciudad: "Mar del Plata" },
+    { nombre: "Sucursal Constitución", ciudad: "Mar del Plata" },
+    { nombre: "Sucursal Los Gallegos", ciudad: "Mar del Plata" },
+    { nombre: "Sucursal Puerto", ciudad: "Mar del Plata" },
+    { nombre: "Sucursal Shopping Bendu", ciudad: "Mar del Plata" },
   ];
 
   const sucursales = [];
@@ -44,51 +50,51 @@ async function main() {
   // 3. Create Products with Stock
   const productosData = [
     {
-      nombre: "Auriculares Inalámbricos Sony WH-1000XM4",
+      nombre: "MacBook Pro 16\" M3 Max - Space Black",
+      marca: "Apple",
+      categoria: "Computación",
+      precio: 3899999,
+      imagenUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80",
+      specs: {
+        procesador: "M3 Max",
+        memoria: "48GB",
+        almacenamiento: "1TB SSD",
+      },
+    },
+    {
+      nombre: "Auriculares Inalámbricos Sony WH-1000XM5 ANC",
       marca: "Sony",
-      categoria: "Auriculares",
-      precio: 350000,
-      imagenUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      categoria: "Audio",
+      precio: 599999,
+      imagenUrl: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&q=80",
       specs: {
         autonomia: "30 horas",
         cancelacionRuido: "Sí",
-        conectividad: "Bluetooth 5.0",
+        conectividad: "Bluetooth 5.2",
       },
     },
     {
-      nombre: "Cargador Rápido Anker Nano II 45W USB-C",
-      marca: "Anker",
-      categoria: "Cargadores",
-      precio: 38000,
-      imagenUrl: "https://images.unsplash.com/photo-1616440347437-b1c73416efc2?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      nombre: "PlayStation 5 Slim 1TB Digital Edition",
+      marca: "Sony",
+      categoria: "Gaming",
+      precio: 1249999,
+      imagenUrl: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800&q=80",
       specs: {
-        potencia: "45W",
-        puertos: "1x USB-C",
-        tecnologia: "GaN II",
+        capacidad: "1TB SSD",
+        resolucion: "4K HDR",
+        edicion: "Digital",
       },
     },
     {
-      nombre: "Smartwatch Samsung Galaxy Watch 6",
-      marca: "Samsung",
-      categoria: "Smartwatch",
-      precio: 290000,
-      imagenUrl: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      nombre: "iPhone 15 Pro Max 256GB - Titanium",
+      marca: "Apple",
+      categoria: "Accesorios",
+      precio: 2199999,
+      imagenUrl: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&q=80",
       specs: {
-        pantalla: "Super AMOLED 1.4\"",
-        sistema: "WearOS",
-        bateria: "Hasta 40 horas",
-      },
-    },
-    {
-      nombre: "Parlante Portátil JBL Flip 6",
-      marca: "JBL",
-      categoria: "Parlantes",
-      precio: 160000,
-      imagenUrl: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
-      specs: {
-        potencia: "20W RMS",
-        resistenciaAgua: "IP67",
-        autonomia: "12 horas",
+        pantalla: "6.7\" Super Retina",
+        almacenamiento: "256GB",
+        procesador: "A17 Pro",
       },
     },
   ];

@@ -78,6 +78,7 @@ export default function AdminDashboard() {
   const [formStocks, setFormStocks] = useState<{ [sucursalId: string]: string }>({});
 
   const [guardandoProducto, setGuardandoProducto] = useState(false);
+  const [procesandoImagen, setProcesandoImagen] = useState(false);
   const [errorModal, setErrorModal] = useState<string | null>(null);
 
   // 1. Validar autenticación
@@ -264,6 +265,52 @@ export default function AdminDashboard() {
     } finally {
       setGuardandoProducto(false);
     }
+  };
+
+  const handleSeleccionarImagen = (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setErrorModal("Seleccioná un archivo de imagen válido");
+      return;
+    }
+
+    setProcesandoImagen(true);
+    setErrorModal(null);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxSize = 900;
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const width = Math.round(img.width * scale);
+        const height = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          setErrorModal("No se pudo procesar la imagen");
+          setProcesandoImagen(false);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        setFormImagenUrl(canvas.toDataURL("image/jpeg", 0.82));
+        setProcesandoImagen(false);
+      };
+      img.onerror = () => {
+        setErrorModal("No se pudo leer la imagen. Probá con una foto JPG o PNG.");
+        setProcesandoImagen(false);
+      };
+      img.src = reader.result as string;
+    };
+    reader.onerror = () => {
+      setErrorModal("No se pudo cargar la imagen");
+      setProcesandoImagen(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Eliminar producto
@@ -762,16 +809,51 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  URL de Imagen (Unsplash, etc.) *
+                  Imagen del Producto *
                 </label>
-                <input
-                  type="url"
-                  required
-                  value={formImagenUrl}
-                  onChange={(e) => setFormImagenUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-4">
+                  <div className="h-36 rounded-xl overflow-hidden bg-black border border-zinc-900 flex items-center justify-center">
+                    {formImagenUrl ? (
+                      <img
+                        src={formImagenUrl}
+                        alt="Vista previa del producto"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs text-gray-600 text-center px-4">Sin imagen</span>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    <label className="flex flex-col items-center justify-center min-h-20 px-4 py-4 rounded-xl border border-dashed border-zinc-800 bg-black text-sm font-semibold text-white hover:border-primary cursor-pointer transition-colors">
+                      {procesandoImagen ? (
+                        <span className="inline-flex items-center text-gray-400">
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Procesando imagen...
+                        </span>
+                      ) : (
+                        <span>Subir foto desde el celular</span>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        disabled={procesandoImagen}
+                        onChange={(e) => handleSeleccionarImagen(e.target.files?.[0])}
+                        className="sr-only"
+                      />
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formImagenUrl}
+                      onChange={(e) => setFormImagenUrl(e.target.value)}
+                      placeholder="O pegá una URL de imagen"
+                      className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none"
+                    />
+                    <p className="text-[11px] text-gray-500">
+                      Podés sacar una foto o elegir una de la galería. Se comprime automáticamente para que cargue rápido.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center">
@@ -843,7 +925,7 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   type="submit"
-                  disabled={guardandoProducto}
+                  disabled={guardandoProducto || procesandoImagen}
                   className="flex-grow inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-orange-500 transition-colors disabled:opacity-50"
                 >
                   {guardandoProducto ? (

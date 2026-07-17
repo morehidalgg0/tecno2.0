@@ -4,6 +4,7 @@ import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
 import { ArrowLeft, Check, Plus, Minus, Loader2, Info, MapPin } from "lucide-react";
 
@@ -260,6 +261,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
