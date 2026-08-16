@@ -70,6 +70,8 @@ export async function POST(req: NextRequest) {
       sucursalId,
       tipoEnvio = "RETIRO",
       domicilio = null,
+      codigoPostal = null,
+      telefono = null,
       costoEnvio = 0,
       cuponCode = null,
       descuento = 0,
@@ -80,6 +82,8 @@ export async function POST(req: NextRequest) {
       sucursalId: string;
       tipoEnvio?: string;
       domicilio?: string | null;
+      codigoPostal?: string | null;
+      telefono?: string | null;
       costoEnvio?: number;
       cuponCode?: string | null;
       descuento?: number;
@@ -208,6 +212,8 @@ export async function POST(req: NextRequest) {
         costoEnvio,
         tipoEnvio,
         domicilio,
+        codigoPostal,
+        telefono,
         estado: "PENDIENTE",
         sucursalId: tipoEnvio === "RETIRO" ? sucursalId : null,
         cuponCode: cuponCode?.toUpperCase() || null,

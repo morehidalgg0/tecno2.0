@@ -27,7 +27,11 @@ export default function CheckoutPage() {
   // Envío
   const [tipoEnvio, setTipoEnvio] = useState<"RETIRO" | "ENVIO">("RETIRO");
   const [domicilio, setDomicilio] = useState("");
-  const costoEnvio = tipoEnvio === "ENVIO" ? (precioTotal >= 100000 ? 0 : 5000) : 0;
+  const [codigoPostal, setCodigoPostal] = useState("");
+  const [cotizandoEnvio, setCotizandoEnvio] = useState(false);
+  const [costoEnvioReal, setCostoEnvioReal] = useState<number | null>(null);
+  const [diasEstimados, setDiasEstimados] = useState<number | null>(null);
+  const costoEnvio = tipoEnvio === "ENVIO" ? (costoEnvioReal ?? (precioTotal >= 100000 ? 0 : 5000)) : 0;
 
   // Cupón
   const [cuponCode, setCuponCode] = useState("");
@@ -57,6 +61,44 @@ export default function CheckoutPage() {
     }
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (tipoEnvio !== "ENVIO" || codigoPostal.length < 4) return;
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setCotizandoEnvio(true);
+      try {
+        const res = await fetch("/api/envios/cotizar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ codigoPostal, pesoKg: 1 }),
+        });
+        const data = await res.json();
+        if (!cancelled && data.cotizaciones && data.cotizaciones.length > 0) {
+          const masBarato = data.cotizaciones.reduce(
+            (min: { precio: number }, c: { precio: number }) =>
+              c.precio < min.precio ? c : min,
+            data.cotizaciones[0]
+          );
+          setCostoEnvioReal(masBarato.precio);
+          setDiasEstimados(masBarato.diasEstimados);
+        }
+      } catch {
+        if (!cancelled) {
+          setCostoEnvioReal(5000);
+          setDiasEstimados(3);
+        }
+      } finally {
+        if (!cancelled) setCotizandoEnvio(false);
+      }
+    }, 800);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [codigoPostal, tipoEnvio]);
 
   const handleValidarCupon = async () => {
     if (!cuponCode.trim()) return;
@@ -93,6 +135,11 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (tipoEnvio === "ENVIO" && !codigoPostal.trim()) {
+      setError("Por favor, ingresá tu código postal.");
+      return;
+    }
+
     setProcesando(true);
     setError(null);
 
@@ -108,12 +155,13 @@ export default function CheckoutPage() {
           sucursalId: sucursalSeleccionada?.id,
           tipoEnvio,
           domicilio: tipoEnvio === "ENVIO" ? domicilio : null,
+          codigoPostal: tipoEnvio === "ENVIO" ? codigoPostal : null,
+          telefono: contactoTelefono || null,
           costoEnvio,
           cuponCode: cuponAplicado?.codigo || null,
           descuento: descuentoMonto,
           contactoNombre: contactoNombre.trim(),
           contactoEmail: contactoEmail.trim(),
-          contactoTelefono: contactoTelefono.trim() || null,
         }),
       });
 
@@ -291,22 +339,49 @@ export default function CheckoutPage() {
 
               {/* Domicilio si envío */}
               {tipoEnvio === "ENVIO" && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                    Dirección de envío
-                  </label>
-                  <input
-                    type="text"
-                    value={domicilio}
-                    onChange={(e) => setDomicilio(e.target.value)}
-                    placeholder="Calle número, piso, depto, localidad"
-                    className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-xs text-white focus:border-primary focus:outline-none"
-                  />
-                  <p className="text-[10px] text-gray-500 mt-1">
-                    {precioTotal >= 100000
-                      ? "Envío gratis en compras superiores a $100.000"
-                      : "Costo de envío: $5.000"}
-                  </p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                      Dirección de envío
+                    </label>
+                    <input
+                      type="text"
+                      value={domicilio}
+                      onChange={(e) => setDomicilio(e.target.value)}
+                      placeholder="Calle, número, piso, depto"
+                      className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-xs text-white focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                      Código Postal
+                    </label>
+                    <input
+                      type="text"
+                      value={codigoPostal}
+                      onChange={(e) => setCodigoPostal(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                      placeholder="Ej: 7600"
+                      className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-xs text-white focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[11px]">
+                    {cotizandoEnvio ? (
+                      <span className="flex items-center gap-1 text-gray-400">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Calculando envío...
+                      </span>
+                    ) : costoEnvioReal !== null ? (
+                      <span className="text-white">
+                        Envío: <span className="font-bold">${costoEnvioReal.toLocaleString("es-AR")}</span>
+                        {diasEstimados && (
+                          <span className="text-gray-500 ml-1">
+                            · {diasEstimados} {diasEstimados === 1 ? "día" : "días"} hábiles
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-gray-500">Ingresá el código postal para calcular</span>
+                    )}
+                  </div>
                 </div>
               )}
 

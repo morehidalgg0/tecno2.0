@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Cpu, LogOut, Package, ShoppingBag, RefreshCw, Plus, Edit, Trash2, 
-  X, Loader2, Save, Eye, EyeOff, Tag
+  X, Loader2, Save, Eye, EyeOff, Tag, Truck, Download
 } from "lucide-react";
 
 interface Sucursal {
@@ -37,6 +37,14 @@ interface Orden {
   monto: number;
   estado: string;
   mercadoPagoId: string | null;
+  tipoEnvio: string;
+  domicilio: string | null;
+  codigoPostal: string | null;
+  telefono: string | null;
+  clienteNombre: string | null;
+  clienteEmail: string | null;
+  andreaniEnvioId: string | null;
+  trackingNumber: string | null;
   sucursal?: Sucursal;
   createdAt: string;
 }
@@ -62,7 +70,7 @@ export default function AdminDashboard() {
   const [cargandoAuth, setCargandoAuth] = useState(true);
 
   // Tab navigation
-  const [tabActiva, setTabActiva] = useState<"ordenes" | "productos" | "cupones" | "tiendanube">("ordenes");
+  const [tabActiva, setTabActiva] = useState<"ordenes" | "productos" | "cupones" | "tiendanube" | "envios">("ordenes");
 
   // Data states
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -486,6 +494,17 @@ export default function AdminDashboard() {
           >
             <Tag className="h-4 w-4 mr-2" />
             Cupones ({cupones.length})
+          </button>
+          <button
+            onClick={() => setTabActiva("envios")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all shrink-0 inline-flex items-center ${
+              tabActiva === "envios"
+                ? "bg-zinc-900 text-primary"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Truck className="h-4 w-4 mr-2" />
+            Envíos ({ordenes.filter((o) => o.tipoEnvio === "ENVIO").length})
           </button>
         </div>
 
@@ -1073,6 +1092,99 @@ export default function AdminDashboard() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Envíos Tab */}
+      {tabActiva === "envios" && (
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold text-white">Envíos a Domicilio</h2>
+          <p className="text-sm text-gray-400">
+            Órdenes con envío a domicilio. Creá el envío en Andreani y descargá la etiqueta para despachar.
+          </p>
+
+          {ordenes.filter((o) => o.tipoEnvio === "ENVIO").length === 0 ? (
+            <div className="text-center py-12 border border-zinc-900 rounded-2xl bg-zinc-950/20">
+              <Truck className="h-8 w-8 mx-auto text-gray-600 mb-3" />
+              <p className="text-gray-400">No hay envíos pendientes</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {ordenes
+                .filter((o) => o.tipoEnvio === "ENVIO")
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((orden) => (
+                  <div key={orden.id} className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-white">
+                          {orden.clienteNombre || "Sin nombre"}
+                          <span className="text-gray-500 font-normal ml-2">#{orden.id.slice(-8).toUpperCase()}</span>
+                        </p>
+                        <p className="text-xs text-gray-400">{orden.clienteEmail}</p>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                        orden.estado === "DESPACHADO" ? "bg-green-500/10 text-green-500" :
+                        orden.estado === "APROBADO" ? "bg-blue-500/10 text-blue-500" :
+                        "bg-yellow-500/10 text-yellow-500"
+                      }`}>
+                        {orden.estado}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-gray-400 space-y-1">
+                      <p><span className="text-gray-500">Dirección:</span> {orden.domicilio || "No informada"}</p>
+                      <p><span className="text-gray-500">CP:</span> {orden.codigoPostal || "—"}</p>
+                      <p><span className="text-gray-500">Teléfono:</span> {orden.telefono || "—"}</p>
+                      <p><span className="text-gray-500">Productos:</span> {orden.productos.map((p) => `${p.cantidad}x ${p.nombre}`).join(", ")}</p>
+                      <p><span className="text-gray-500">Total:</span> <span className="text-white font-semibold">${orden.monto.toLocaleString("es-AR")}</span></p>
+                    </div>
+
+                    <div className="flex gap-2 pt-1">
+                      {!orden.andreaniEnvioId ? (
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Crear envío Andreani para #${orden.id.slice(-8).toUpperCase()}?`)) return;
+                            try {
+                              const res = await fetch("/api/envios/crear", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ ordenId: orden.id }),
+                              });
+                              const data = await res.json();
+                              if (!res.ok) throw new Error(data.error);
+                              alert(`Envío creado! Número: ${data.envioId}`);
+                              loadInitialData();
+                            } catch (err) {
+                              alert(`Error: ${err instanceof Error ? err.message : "Error desconocido"}`);
+                            }
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-orange-500 transition-colors"
+                        >
+                          <Truck className="h-3.5 w-3.5" />
+                          Crear envío
+                        </button>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-900 text-gray-300 text-xs font-mono">
+                            #{orden.andreaniEnvioId}
+                          </span>
+                          <a
+                            href={`/api/envios/etiqueta?ordenId=${orden.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-500/10 text-green-500 text-xs font-bold hover:bg-green-500/20 transition-colors"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            Etiqueta PDF
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
       )}
     </div>
