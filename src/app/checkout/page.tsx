@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { useCart } from "@/context/CartContext";
-import { Trash2, ShoppingBag, Plus, Minus, Loader2, ArrowRight, Truck, MapPin, Tag, X, Check } from "lucide-react";
+import { Trash2, ShoppingBag, Plus, Minus, Loader2, ArrowRight, Truck, MapPin, Tag, X, Check, User } from "lucide-react";
 
 export default function CheckoutPage() {
   const {
@@ -14,6 +14,12 @@ export default function CheckoutPage() {
     sucursalSeleccionada,
     precioTotal,
   } = useCart();
+
+  // Auth / contacto
+  const [autenticado, setAutenticado] = useState(false);
+  const [contactoNombre, setContactoNombre] = useState("");
+  const [contactoEmail, setContactoEmail] = useState("");
+  const [contactoTelefono, setContactoTelefono] = useState("");
 
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +37,26 @@ export default function CheckoutPage() {
 
   const descuentoMonto = cuponAplicado ? cuponAplicado.descuentoMonto : 0;
   const montoFinal = precioTotal - descuentoMonto + costoEnvio;
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/clientes/auth");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.cliente) {
+            setAutenticado(true);
+            setContactoNombre(data.cliente.nombre || "");
+            setContactoEmail(data.cliente.email || "");
+            setContactoTelefono(data.cliente.telefono || "");
+          }
+        }
+      } catch {
+        // Guest
+      }
+    }
+    checkAuth();
+  }, []);
 
   const handleValidarCupon = async () => {
     if (!cuponCode.trim()) return;
@@ -57,6 +83,11 @@ export default function CheckoutPage() {
   const handlePagar = async () => {
     if (carrito.length === 0) return;
 
+    if (!contactoNombre.trim() || !contactoEmail.trim()) {
+      setError("Completá tu nombre y email para continuar.");
+      return;
+    }
+
     if (tipoEnvio === "ENVIO" && !domicilio.trim()) {
       setError("Por favor, ingresá tu dirección de envío.");
       return;
@@ -80,6 +111,9 @@ export default function CheckoutPage() {
           costoEnvio,
           cuponCode: cuponAplicado?.codigo || null,
           descuento: descuentoMonto,
+          contactoNombre: contactoNombre.trim(),
+          contactoEmail: contactoEmail.trim(),
+          contactoTelefono: contactoTelefono.trim() || null,
         }),
       });
 
@@ -97,6 +131,8 @@ export default function CheckoutPage() {
       setProcesando(false);
     }
   };
+
+  const contactoCompleto = contactoNombre.trim() && contactoEmail.trim();
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
@@ -165,6 +201,56 @@ export default function CheckoutPage() {
               <h3 className="text-base font-bold text-white uppercase tracking-wider border-b border-zinc-900 pb-3">
                 Resumen de Compra
               </h3>
+
+              {/* Datos de contacto - estilo Tiendanube */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Datos de contacto</span>
+                  {autenticado && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-primary">
+                      <User className="h-3 w-3" />
+                      <span>Sesión activa</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={contactoNombre}
+                    onChange={(e) => setContactoNombre(e.target.value)}
+                    placeholder="Nombre y apellido"
+                    readOnly={autenticado}
+                    className={`w-full bg-black border border-zinc-900 rounded-lg py-2.5 px-3 text-xs text-white placeholder:text-gray-600 focus:border-primary focus:outline-none ${
+                      autenticado ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                  />
+                  <input
+                    type="email"
+                    value={contactoEmail}
+                    onChange={(e) => setContactoEmail(e.target.value)}
+                    placeholder="Email"
+                    readOnly={autenticado}
+                    className={`w-full bg-black border border-zinc-900 rounded-lg py-2.5 px-3 text-xs text-white placeholder:text-gray-600 focus:border-primary focus:outline-none ${
+                      autenticado ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                  />
+                  <input
+                    type="tel"
+                    value={contactoTelefono}
+                    onChange={(e) => setContactoTelefono(e.target.value)}
+                    placeholder="Teléfono (opcional)"
+                    readOnly={autenticado}
+                    className={`w-full bg-black border border-zinc-900 rounded-lg py-2.5 px-3 text-xs text-white placeholder:text-gray-600 focus:border-primary focus:outline-none ${
+                      autenticado ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
+                  />
+                </div>
+
+                <p className="text-[10px] text-gray-500">
+                  Usamos estos datos para enviarte la confirmación de tu compra.
+                </p>
+              </div>
 
               {/* Tipo de Envío */}
               <div className="space-y-2">
@@ -303,7 +389,7 @@ export default function CheckoutPage() {
               )}
 
               <button
-                disabled={procesando}
+                disabled={procesando || !contactoCompleto}
                 onClick={handlePagar}
                 className="w-full inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-orange-500 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >

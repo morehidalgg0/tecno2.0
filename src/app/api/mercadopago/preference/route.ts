@@ -73,6 +73,8 @@ export async function POST(req: NextRequest) {
       costoEnvio = 0,
       cuponCode = null,
       descuento = 0,
+      contactoNombre = null,
+      contactoEmail = null,
     } = body as {
       productos: Array<{ id: string; cantidad: number }>;
       sucursalId: string;
@@ -81,6 +83,8 @@ export async function POST(req: NextRequest) {
       costoEnvio?: number;
       cuponCode?: string | null;
       descuento?: number;
+      contactoNombre?: string | null;
+      contactoEmail?: string | null;
     };
 
     if (!productos || productos.length === 0) {
@@ -100,6 +104,13 @@ export async function POST(req: NextRequest) {
     if (tipoEnvio === "ENVIO" && !domicilio) {
       return NextResponse.json(
         { error: "Dirección requerida para envío" },
+        { status: 400 }
+      );
+    }
+
+    if (!contactoNombre || !contactoEmail) {
+      return NextResponse.json(
+        { error: "Nombre y email de contacto son requeridos" },
         { status: 400 }
       );
     }
@@ -201,8 +212,8 @@ export async function POST(req: NextRequest) {
         sucursalId: tipoEnvio === "RETIRO" ? sucursalId : null,
         cuponCode: cuponCode?.toUpperCase() || null,
         clienteId: clienteData?.id || null,
-        clienteEmail: clienteData?.email || null,
-        clienteNombre: clienteData?.nombre || null,
+        clienteEmail: clienteData?.email || contactoEmail,
+        clienteNombre: clienteData?.nombre || contactoNombre,
       },
     });
 
@@ -243,10 +254,12 @@ export async function POST(req: NextRequest) {
     });
 
     // Enviar email de confirmación (async, no bloquea)
-    if (clienteData?.email) {
+    const emailDestino = clienteData?.email || contactoEmail;
+    const nombreDestino = clienteData?.nombre || contactoNombre;
+    if (emailDestino) {
       enviarEmailConfirmacion(
-        clienteData.email,
-        clienteData.nombre,
+        emailDestino,
+        nombreDestino,
         orden.id,
         dbProductos,
         montoFinal,
