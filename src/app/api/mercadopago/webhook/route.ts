@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { MercadoPagoConfig, Payment } from "mercadopago";
+import type { Prisma } from "@prisma/client";
 
 // Inicializar cliente Mercado Pago
 const MP_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN || "";
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
             }>;
 
             // Transacción: actualizar estado de orden y decrementar stock por sucursal
-            await db.$transaction(async (tx) => {
+            await db.$transaction(async (tx: Prisma.TransactionClient) => {
               // 1. Marcar la orden como APROBADO
               await tx.orden.update({
                 where: { id: orderId },

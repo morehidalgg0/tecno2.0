@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { useCart } from "@/context/CartContext";
-import { Trash2, ShoppingBag, Plus, Minus, Loader2, ArrowRight } from "lucide-react";
+import { Trash2, ShoppingBag, Plus, Minus, Loader2, ArrowRight, Truck, MapPin, Tag, X, Check } from "lucide-react";
 
 export default function CheckoutPage() {
   const {
@@ -18,40 +18,74 @@ export default function CheckoutPage() {
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Envío
+  const [tipoEnvio, setTipoEnvio] = useState<"RETIRO" | "ENVIO">("RETIRO");
+  const [domicilio, setDomicilio] = useState("");
+  const costoEnvio = tipoEnvio === "ENVIO" ? (precioTotal >= 100000 ? 0 : 5000) : 0;
+
+  // Cupón
+  const [cuponCode, setCuponCode] = useState("");
+  const [cuponValidando, setCuponValidando] = useState(false);
+  const [cuponAplicado, setCuponAplicado] = useState<{ codigo: string; descuento: number; descuentoMonto: number } | null>(null);
+  const [cuponError, setCuponError] = useState<string | null>(null);
+
+  const descuentoMonto = cuponAplicado ? cuponAplicado.descuentoMonto : 0;
+  const montoFinal = precioTotal - descuentoMonto + costoEnvio;
+
+  const handleValidarCupon = async () => {
+    if (!cuponCode.trim()) return;
+    setCuponValidando(true);
+    setCuponError(null);
+    setCuponAplicado(null);
+
+    try {
+      const res = await fetch("/api/cupones/validar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo: cuponCode, montoCarrito: precioTotal }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setCuponAplicado(data.cupon);
+    } catch (err) {
+      setCuponError(err instanceof Error ? err.message : "Error al validar cupón");
+    } finally {
+      setCuponValidando(false);
+    }
+  };
+
   const handlePagar = async () => {
-    if (!sucursalSeleccionada) {
-      setError("Por favor, selecciona una sucursal en el encabezado.");
+    if (carrito.length === 0) return;
+
+    if (tipoEnvio === "ENVIO" && !domicilio.trim()) {
+      setError("Por favor, ingresá tu dirección de envío.");
       return;
     }
-    if (carrito.length === 0) return;
 
     setProcesando(true);
     setError(null);
 
     try {
-      // Llamar al endpoint local para generar la preferencia de Mercado Pago
       const res = await fetch("/api/mercadopago/preference", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productos: carrito.map((item) => ({
             id: item.id,
             cantidad: item.cantidad,
           })),
-          sucursalId: sucursalSeleccionada.id,
+          sucursalId: sucursalSeleccionada?.id,
+          tipoEnvio,
+          domicilio: tipoEnvio === "ENVIO" ? domicilio : null,
+          costoEnvio,
+          cuponCode: cuponAplicado?.codigo || null,
+          descuento: descuentoMonto,
         }),
       });
 
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al procesar el pago");
 
-      if (!res.ok) {
-        throw new Error(data.error || "Error al procesar el pago");
-      }
-
-      // Redirigir a Mercado Pago
-      // Preferimos sandboxInitPoint para pruebas y initPoint como fallback para producción
       const redirectUrl = data.sandboxInitPoint || data.initPoint;
       if (redirectUrl) {
         window.location.href = redirectUrl;
@@ -59,9 +93,7 @@ export default function CheckoutPage() {
         throw new Error("No se obtuvo la URL de pago de Mercado Pago");
       }
     } catch (err) {
-      console.error("Error al procesar checkout:", err);
-      const errMsg = err instanceof Error ? err.message : "Error al iniciar el pago con Mercado Pago";
-      setError(errMsg);
+      setError(err instanceof Error ? err.message : "Error al iniciar el pago");
       setProcesando(false);
     }
   };
@@ -88,7 +120,6 @@ export default function CheckoutPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
             {/* Products List */}
             <div className="lg:col-span-2 space-y-4">
               {carrito.map((item) => (
@@ -96,7 +127,6 @@ export default function CheckoutPage() {
                   key={item.id}
                   className="flex items-center gap-4 p-4 rounded-xl border border-zinc-900 bg-zinc-950/40"
                 >
-                  {/* Photo */}
                   <div className="h-16 w-16 sm:h-20 sm:w-20 shrink-0 rounded-lg overflow-hidden bg-zinc-900 flex items-center justify-center border border-zinc-800">
                     <img
                       src={item.imagenUrl}
@@ -108,41 +138,21 @@ export default function CheckoutPage() {
                       }}
                     />
                   </div>
-
-                  {/* Details */}
                   <div className="flex-grow min-w-0">
-                    <h3 className="text-sm sm:text-base font-semibold text-white truncate">
-                      {item.nombre}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-gray-400 mt-0.5">
-                      ${item.precio.toLocaleString("es-AR")}
-                    </p>
+                    <h3 className="text-sm sm:text-base font-semibold text-white truncate">{item.nombre}</h3>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-0.5">${item.precio.toLocaleString("es-AR")}</p>
                   </div>
-
-                  {/* Quantity & Delete */}
                   <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-4 shrink-0">
-                    <div className="flex items-center gap-2 border border-zinc-850 rounded-lg bg-zinc-950 p-1">
-                      <button
-                        onClick={() => actualizarCantidad(item.id, item.cantidad - 1)}
-                        className="p-1 text-gray-400 hover:text-white transition-colors"
-                      >
+                    <div className="flex items-center gap-2 border border-zinc-800 rounded-lg bg-zinc-950 p-1">
+                      <button onClick={() => actualizarCantidad(item.id, item.cantidad - 1)} className="p-1 text-gray-400 hover:text-white transition-colors">
                         <Minus className="h-3 w-3" />
                       </button>
-                      <span className="text-white text-xs font-bold w-6 text-center select-none">
-                        {item.cantidad}
-                      </span>
-                      <button
-                        onClick={() => actualizarCantidad(item.id, item.cantidad + 1)}
-                        className="p-1 text-gray-400 hover:text-white transition-colors"
-                      >
+                      <span className="text-white text-xs font-bold w-6 text-center select-none">{item.cantidad}</span>
+                      <button onClick={() => actualizarCantidad(item.id, item.cantidad + 1)} className="p-1 text-gray-400 hover:text-white transition-colors">
                         <Plus className="h-3 w-3" />
                       </button>
                     </div>
-
-                    <button
-                      onClick={() => quitarDelCarrito(item.id)}
-                      className="p-2 text-gray-500 hover:text-red-500 rounded-lg hover:bg-zinc-900/50 transition-colors"
-                    >
+                    <button onClick={() => quitarDelCarrito(item.id)} className="p-2 text-gray-500 hover:text-red-500 rounded-lg hover:bg-zinc-900/50 transition-colors">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -151,28 +161,137 @@ export default function CheckoutPage() {
             </div>
 
             {/* Summary */}
-            <div className="p-6 rounded-xl border border-zinc-900 bg-zinc-950/60 flex flex-col justify-between h-fit space-y-6">
+            <div className="p-6 rounded-xl border border-zinc-900 bg-zinc-950/60 flex flex-col justify-between h-fit space-y-5">
               <h3 className="text-base font-bold text-white uppercase tracking-wider border-b border-zinc-900 pb-3">
                 Resumen de Compra
               </h3>
 
-              <div className="space-y-4 text-sm text-gray-400">
-                {sucursalSeleccionada && (
-                  <div className="flex justify-between">
-                    <span>Retiro en sucursal:</span>
-                    <span className="text-white font-semibold">
-                      {sucursalSeleccionada.nombre}
-                    </span>
+              {/* Tipo de Envío */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Modalidad de entrega</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setTipoEnvio("RETIRO")}
+                    className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                      tipoEnvio === "RETIRO"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-zinc-800 text-gray-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    <MapPin className="h-4 w-4" />
+                    <div className="text-left">
+                      <span className="block">Retiro</span>
+                      <span className="block text-[10px] font-normal text-gray-500">Gratis</span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setTipoEnvio("ENVIO")}
+                    className={`p-3 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all ${
+                      tipoEnvio === "ENVIO"
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-zinc-800 text-gray-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    <Truck className="h-4 w-4" />
+                    <div className="text-left">
+                      <span className="block">Envío</span>
+                      <span className="block text-[10px] font-normal text-gray-500">
+                        {precioTotal >= 100000 ? "Gratis" : "$5.000"}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Domicilio si envío */}
+              {tipoEnvio === "ENVIO" && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                    Dirección de envío
+                  </label>
+                  <input
+                    type="text"
+                    value={domicilio}
+                    onChange={(e) => setDomicilio(e.target.value)}
+                    placeholder="Calle número, piso, depto, localidad"
+                    className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-xs text-white focus:border-primary focus:outline-none"
+                  />
+                  <p className="text-[10px] text-gray-500 mt-1">
+                    {precioTotal >= 100000
+                      ? "Envío gratis en compras superiores a $100.000"
+                      : "Costo de envío: $5.000"}
+                  </p>
+                </div>
+              )}
+
+              {/* Sucursal si retiro */}
+              {tipoEnvio === "RETIRO" && sucursalSeleccionada && (
+                <div className="flex justify-between text-sm text-gray-400">
+                  <span>Retiro en sucursal:</span>
+                  <span className="text-white font-semibold">{sucursalSeleccionada.nombre}</span>
+                </div>
+              )}
+
+              {/* Cupón */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                  <Tag className="h-3 w-3 inline mr-1" />
+                  Cupón de descuento
+                </label>
+                {cuponAplicado ? (
+                  <div className="flex items-center justify-between p-2.5 rounded-xl border border-green-500/30 bg-green-500/5">
+                    <div className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 text-green-500" />
+                      <span className="text-xs font-bold text-green-400">{cuponAplicado.codigo}</span>
+                      <span className="text-[10px] text-gray-500">-{cuponAplicado.descuento}%</span>
+                    </div>
+                    <button onClick={() => { setCuponAplicado(null); setCuponCode(""); }} className="text-gray-500 hover:text-white">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={cuponCode}
+                      onChange={(e) => setCuponCode(e.target.value.toUpperCase())}
+                      placeholder="CÓDIGO"
+                      className="flex-1 bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-xs text-white uppercase focus:border-primary focus:outline-none"
+                    />
+                    <button
+                      onClick={handleValidarCupon}
+                      disabled={cuponValidando || !cuponCode.trim()}
+                      className="px-3 rounded-xl border border-zinc-800 text-gray-400 hover:text-white hover:border-zinc-700 text-xs font-bold transition-all disabled:opacity-50"
+                    >
+                      {cuponValidando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Aplicar"}
+                    </button>
+                  </div>
+                )}
+                {cuponError && <p className="text-[10px] text-red-400 mt-1">{cuponError}</p>}
+              </div>
+
+              {/* Totales */}
+              <div className="space-y-2 text-sm text-gray-400">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span className="text-white font-semibold">${precioTotal.toLocaleString("es-AR")}</span>
+                </div>
+                {descuentoMonto > 0 && (
+                  <div className="flex justify-between text-green-500">
+                    <span>Descuento ({cuponAplicado?.descuento}%):</span>
+                    <span className="font-semibold">-${descuentoMonto.toLocaleString("es-AR")}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span>Envío / Retiro:</span>
-                  <span className="text-green-500 font-semibold">Gratis</span>
+                  <span>Envío:</span>
+                  <span className={`font-semibold ${costoEnvio === 0 ? "text-green-500" : "text-white"}`}>
+                    {costoEnvio === 0 ? "Gratis" : `$${costoEnvio.toLocaleString("es-AR")}`}
+                  </span>
                 </div>
-                <div className="flex justify-between border-t border-zinc-900 pt-4 text-base">
+                <div className="flex justify-between border-t border-zinc-900 pt-3 text-base">
                   <span className="text-white font-bold">Total:</span>
                   <span className="text-white font-extrabold text-lg">
-                    ${precioTotal.toLocaleString("es-AR")}
+                    ${Math.max(0, montoFinal).toLocaleString("es-AR")}
                   </span>
                 </div>
               </div>
@@ -199,7 +318,6 @@ export default function CheckoutPage() {
                 )}
               </button>
             </div>
-
           </div>
         )}
       </main>

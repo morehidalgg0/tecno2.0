@@ -4,14 +4,13 @@ import React, { useEffect, use } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { useCart } from "@/context/CartContext";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Package, ArrowRight } from "lucide-react";
 
 export default function SuccessPage({ searchParams }: { searchParams: Promise<{ orderId?: string }> }) {
   const { vaciarCarrito } = useCart();
   const resolvedParams = use(searchParams);
   const orderId = resolvedParams.orderId;
 
-  // Vaciar el carrito ya que la compra fue exitosa
   useEffect(() => {
     vaciarCarrito();
   }, [vaciarCarrito]);
@@ -42,10 +41,16 @@ export default function SuccessPage({ searchParams }: { searchParams: Promise<{ 
 
         <div className="flex flex-col sm:flex-row gap-4 w-full">
           <Link
-            href="/"
+            href="/mis-pedidos"
             className="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-white font-semibold text-sm hover:bg-orange-500 transition-colors"
           >
-            Volver al Inicio
+            <Package className="h-4 w-4 mr-2" /> Ver Mis Pedidos
+          </Link>
+          <Link
+            href="/"
+            className="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-xl border border-zinc-800 text-white font-semibold text-sm hover:bg-zinc-900 transition-colors"
+          >
+            Seguir Comprando <ArrowRight className="h-4 w-4 ml-2" />
           </Link>
         </div>
       </main>

@@ -6,20 +6,19 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding database...");
 
-  // 1. Create Admin
-  const email = "admin@tecnoguemes.com";
-  
-  // Clean existing data for a fresh seed if needed
   await prisma.stock.deleteMany({});
   await prisma.producto.deleteMany({});
   await prisma.sucursal.deleteMany({});
   await prisma.usuario.deleteMany({});
   await prisma.orden.deleteMany({});
+  await prisma.cliente.deleteMany({});
+  await prisma.cupon.deleteMany({});
 
+  // 1. Create Admin
   const passwordHash = bcrypt.hashSync("admin123", 10);
   await prisma.usuario.create({
     data: {
-      email,
+      email: "admin@tecnoguemes.com",
       passwordHash,
     },
   });
@@ -40,9 +39,7 @@ async function main() {
 
   const sucursales = [];
   for (const s of sucursalesData) {
-    const created = await prisma.sucursal.create({
-      data: s,
-    });
+    const created = await prisma.sucursal.create({ data: s });
     sucursales.push(created);
     console.log(`Sucursal created: ${s.nombre}`);
   }
@@ -55,11 +52,7 @@ async function main() {
       categoria: "Computación",
       precio: 3899999,
       imagenUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80",
-      specs: {
-        procesador: "M3 Max",
-        memoria: "48GB",
-        almacenamiento: "1TB SSD",
-      },
+      specs: { procesador: "M3 Max", memoria: "48GB", almacenamiento: "1TB SSD" },
     },
     {
       nombre: "Auriculares Inalámbricos Sony WH-1000XM5 ANC",
@@ -67,11 +60,7 @@ async function main() {
       categoria: "Audio",
       precio: 599999,
       imagenUrl: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&q=80",
-      specs: {
-        autonomia: "30 horas",
-        cancelacionRuido: "Sí",
-        conectividad: "Bluetooth 5.2",
-      },
+      specs: { autonomia: "30 horas", cancelacionRuido: "Sí", conectividad: "Bluetooth 5.2" },
     },
     {
       nombre: "PlayStation 5 Slim 1TB Digital Edition",
@@ -79,11 +68,7 @@ async function main() {
       categoria: "Gaming",
       precio: 1249999,
       imagenUrl: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800&q=80",
-      specs: {
-        capacidad: "1TB SSD",
-        resolucion: "4K HDR",
-        edicion: "Digital",
-      },
+      specs: { capacidad: "1TB SSD", resolucion: "4K HDR", edicion: "Digital" },
     },
     {
       nombre: "iPhone 15 Pro Max 256GB - Titanium",
@@ -91,11 +76,7 @@ async function main() {
       categoria: "Accesorios",
       precio: 2199999,
       imagenUrl: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&q=80",
-      specs: {
-        pantalla: "6.7\" Super Retina",
-        almacenamiento: "256GB",
-        procesador: "A17 Pro",
-      },
+      specs: { pantalla: "6.7\" Super Retina", almacenamiento: "256GB", procesador: "A17 Pro" },
     },
   ];
 
@@ -111,12 +92,10 @@ async function main() {
         activo: true,
       },
     });
-
     console.log(`Producto creado: ${p.nombre}`);
 
-    // Crear stock aleatorio para cada sucursal
     for (const suc of sucursales) {
-      const cantidad = Math.floor(Math.random() * 15) + 2; // entre 2 y 16 unidades
+      const cantidad = Math.floor(Math.random() * 15) + 2;
       await prisma.stock.create({
         data: {
           productoId: producto.id,
@@ -124,8 +103,34 @@ async function main() {
           cantidad,
         },
       });
-      console.log(`  Stock creado: ${cantidad} unidades en ${suc.nombre}`);
     }
+  }
+
+  // 4. Create Coupons
+  const cuponesData = [
+    {
+      codigo: "BIENVENIDO10",
+      descuento: 10,
+      montoMinimo: 50000,
+      usoMaximo: 100,
+    },
+    {
+      codigo: "TECNO15",
+      descuento: 15,
+      montoMinimo: 200000,
+      usoMaximo: 50,
+    },
+    {
+      codigo: "ENVIOGRATIS",
+      descuento: 5,
+      montoMinimo: 100000,
+      usoMaximo: 200,
+    },
+  ];
+
+  for (const c of cuponesData) {
+    await prisma.cupon.create({ data: c });
+    console.log(`Cupón creado: ${c.codigo} (${c.descuento}% dto)`);
   }
 
   console.log("Seeding completed successfully!");

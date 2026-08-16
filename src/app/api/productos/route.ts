@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import { verifyAdminToken } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
 
-// Datos Mock de respaldo si no hay base de datos conectada o configurada
 export const MOCK_PRODUCTOS = [
   {
     id: "prod-1",
@@ -13,11 +12,7 @@ export const MOCK_PRODUCTOS = [
     precio: 3899999,
     imagenUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80",
     colorFondo: "bg-indigo-950/30",
-    specs: {
-      procesador: "M3 Max",
-      memoria: "48GB",
-      almacenamiento: "1TB SSD",
-    },
+    specs: { procesador: "M3 Max", memoria: "48GB", almacenamiento: "1TB SSD" },
     activo: true,
     stocks: [
       { sucursalId: "suc-guemes-central", cantidad: 5, sucursal: { nombre: "Sucursal Güemes Central", ciudad: "Mar del Plata" } },
@@ -41,11 +36,7 @@ export const MOCK_PRODUCTOS = [
     precio: 599999,
     imagenUrl: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=800&q=80",
     colorFondo: "bg-amber-500/10",
-    specs: {
-      autonomia: "30 horas",
-      cancelacionRuido: "Sí",
-      conectividad: "Bluetooth 5.2",
-    },
+    specs: { autonomia: "30 horas", cancelacionRuido: "Sí", conectividad: "Bluetooth 5.2" },
     activo: true,
     stocks: [
       { sucursalId: "suc-guemes-central", cantidad: 10, sucursal: { nombre: "Sucursal Güemes Central", ciudad: "Mar del Plata" } },
@@ -69,11 +60,7 @@ export const MOCK_PRODUCTOS = [
     precio: 1249999,
     imagenUrl: "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800&q=80",
     colorFondo: "bg-zinc-900/60",
-    specs: {
-      capacidad: "1TB SSD",
-      resolucion: "4K HDR",
-      edicion: "Digital",
-    },
+    specs: { capacidad: "1TB SSD", resolucion: "4K HDR", edicion: "Digital" },
     activo: true,
     stocks: [
       { sucursalId: "suc-guemes-central", cantidad: 8, sucursal: { nombre: "Sucursal Güemes Central", ciudad: "Mar del Plata" } },
@@ -97,11 +84,7 @@ export const MOCK_PRODUCTOS = [
     precio: 2199999,
     imagenUrl: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800&q=80",
     colorFondo: "bg-neutral-900/80",
-    specs: {
-      pantalla: "6.7\" Super Retina",
-      almacenamiento: "256GB",
-      procesador: "A17 Pro",
-    },
+    specs: { pantalla: "6.7\" Super Retina", almacenamiento: "256GB", procesador: "A17 Pro" },
     activo: true,
     stocks: [
       { sucursalId: "suc-guemes-central", cantidad: 4, sucursal: { nombre: "Sucursal Güemes Central", ciudad: "Mar del Plata" } },
@@ -119,12 +102,15 @@ export const MOCK_PRODUCTOS = [
   }
 ];
 
+const ITEMS_PER_PAGE = 12;
+
 function filtrarProductosMock(
   categoria: string | null,
   marca: string | null,
   precioMaxStr: string | null,
   sucursalId: string | null,
-  isAdminView: boolean
+  isAdminView: boolean,
+  page: number
 ) {
   let list = [...MOCK_PRODUCTOS];
 
@@ -154,7 +140,11 @@ function filtrarProductosMock(
     });
   }
 
-  return list;
+  const total = list.length;
+  const start = (page - 1) * ITEMS_PER_PAGE;
+  const paginated = list.slice(start, start + ITEMS_PER_PAGE);
+
+  return { productos: paginated, total, page, totalPages: Math.ceil(total / ITEMS_PER_PAGE) };
 }
 
 export async function GET(req: NextRequest) {
@@ -164,6 +154,8 @@ export async function GET(req: NextRequest) {
   const precioMaxStr = searchParams.get("precioMax");
   const sucursalId = searchParams.get("sucursalId");
   const isAdminView = searchParams.get("admin") === "true";
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+  const search = searchParams.get("q");
 
   try {
     if (isAdminView) {
@@ -177,7 +169,7 @@ export async function GET(req: NextRequest) {
     if (!isAdminView) {
       where.activo = true;
     }
-    if (categoria) {
+    if (categoria && categoria !== "Todos") {
       where.categoria = { equals: categoria, mode: "insensitive" };
     }
     if (marca) {
@@ -197,31 +189,43 @@ export async function GET(req: NextRequest) {
         },
       };
     }
-
-    const productos = await db.producto.findMany({
-      where,
-      include: {
-        stocks: {
-          include: {
-            sucursal: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (productos.length === 0) {
-      return NextResponse.json(
-        filtrarProductosMock(categoria, marca, precioMaxStr, sucursalId, isAdminView)
-      );
+    if (search) {
+      where.OR = [
+        { nombre: { contains: search, mode: "insensitive" } },
+        { marca: { contains: search, mode: "insensitive" } },
+      ];
     }
 
-    return NextResponse.json(productos);
+    const [productos, total] = await Promise.all([
+      db.producto.findMany({
+        where,
+        include: {
+          stocks: {
+            include: { sucursal: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * ITEMS_PER_PAGE,
+        take: ITEMS_PER_PAGE,
+      }),
+      db.producto.count({ where }),
+    ]);
+
+    if (productos.length === 0 && total === 0 && !search) {
+      const mockResult = filtrarProductosMock(categoria, marca, precioMaxStr, sucursalId, isAdminView, page);
+      return NextResponse.json(mockResult);
+    }
+
+    return NextResponse.json({
+      productos,
+      total,
+      page,
+      totalPages: Math.ceil(total / ITEMS_PER_PAGE),
+    });
   } catch (error) {
     console.warn("DB connection failed. Falling back to mock products.", error);
-    return NextResponse.json(
-      filtrarProductosMock(categoria, marca, precioMaxStr, sucursalId, isAdminView)
-    );
+    const mockResult = filtrarProductosMock(categoria, marca, precioMaxStr, sucursalId, isAdminView, page);
+    return NextResponse.json(mockResult);
   }
 }
 
@@ -260,9 +264,7 @@ export async function POST(req: NextRequest) {
             : [],
         },
       },
-      include: {
-        stocks: true,
-      },
+      include: { stocks: true },
     });
 
     return NextResponse.json(nuevoProducto, { status: 201 });

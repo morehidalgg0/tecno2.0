@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
   Cpu, LogOut, Package, ShoppingBag, RefreshCw, Plus, Edit, Trash2, 
-  Check, X, Loader2, Save, Info, AlertTriangle, Eye, EyeOff
+  X, Loader2, Save, Eye, EyeOff, Tag
 } from "lucide-react";
 
 interface Sucursal {
@@ -41,6 +41,19 @@ interface Orden {
   createdAt: string;
 }
 
+interface Cupon {
+  id: string;
+  codigo: string;
+  descuento: number;
+  montoMinimo: number;
+  activo: boolean;
+  usoMaximo: number | null;
+  usoActual: number;
+  validoDesde: string | null;
+  validoHasta: string | null;
+  createdAt: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   
@@ -49,7 +62,7 @@ export default function AdminDashboard() {
   const [cargandoAuth, setCargandoAuth] = useState(true);
 
   // Tab navigation
-  const [tabActiva, setTabActiva] = useState<"ordenes" | "productos" | "tiendanube">("ordenes");
+  const [tabActiva, setTabActiva] = useState<"ordenes" | "productos" | "cupones" | "tiendanube">("ordenes");
 
   // Data states
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -62,6 +75,18 @@ export default function AdminDashboard() {
   const [tnAccessToken, setTnAccessToken] = useState("");
   const [importandoTn, setImportandoTn] = useState(false);
   const [importRes, setImportRes] = useState<string | null>(null);
+
+  // Cupones
+  const [cupones, setCupones] = useState<Cupon[]>([]);
+  const [cuponModalAbierto, setCuponModalAbierto] = useState(false);
+  const [cuponFormCodigo, setCuponFormCodigo] = useState("");
+  const [cuponFormDescuento, setCuponFormDescuento] = useState("");
+  const [cuponFormMinimo, setCuponFormMinimo] = useState("");
+  const [cuponFormMaxUsos, setCuponFormMaxUsos] = useState("");
+  const [cuponFormDesde, setCuponFormDesde] = useState("");
+  const [cuponFormHasta, setCuponFormHasta] = useState("");
+  const [guardandoCupon, setGuardandoCupon] = useState(false);
+  const [errorCuponModal, setErrorCuponModal] = useState<string | null>(null);
 
   // Product CRUD Modal states
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -129,7 +154,14 @@ export default function AdminDashboard() {
       const resProd = await fetch("/api/productos?admin=true");
       if (resProd.ok) {
         const dataProd = await resProd.json();
-        setProductos(dataProd);
+        setProductos(dataProd.productos || dataProd);
+      }
+
+      // Cargar Cupones
+      const resCup = await fetch("/api/cupones");
+      if (resCup.ok) {
+        const dataCup = await resCup.json();
+        setCupones(dataCup);
       }
 
       // Inicializar stock inputs
@@ -444,6 +476,17 @@ export default function AdminDashboard() {
             <RefreshCw className="h-4 w-4 mr-2" />
             Importar Tiendanube
           </button>
+          <button
+            onClick={() => setTabActiva("cupones")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all shrink-0 inline-flex items-center ${
+              tabActiva === "cupones"
+                ? "bg-zinc-900 text-primary"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            <Tag className="h-4 w-4 mr-2" />
+            Cupones ({cupones.length})
+          </button>
         </div>
 
         {/* Tab Contents */}
@@ -713,6 +756,94 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+
+            {/* TABS 4: CUPONES */}
+            {tabActiva === "cupones" && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-heading font-extrabold text-white">Cupones de Descuento</h2>
+                  <button
+                    onClick={() => {
+                      setCuponFormCodigo("");
+                      setCuponFormDescuento("");
+                      setCuponFormMinimo("");
+                      setCuponFormMaxUsos("");
+                      setCuponFormDesde("");
+                      setCuponFormHasta("");
+                      setErrorCuponModal(null);
+                      setCuponModalAbierto(true);
+                    }}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-primary text-white font-bold text-sm hover:bg-orange-500 transition-colors"
+                  >
+                    <Plus className="h-4 w-4 mr-1.5" /> Nuevo Cupón
+                  </button>
+                </div>
+
+                {cupones.length === 0 ? (
+                  <div className="text-center py-20 border border-zinc-900 rounded-2xl bg-zinc-950/20 text-gray-500">
+                    No hay cupones creados.
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-zinc-900 overflow-hidden bg-zinc-950/20">
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-zinc-900 text-left text-sm">
+                        <thead className="bg-zinc-950/80 text-gray-400 font-semibold text-xs uppercase tracking-wider">
+                          <tr>
+                            <th className="px-6 py-4">Código</th>
+                            <th className="px-6 py-4">Descuento</th>
+                            <th className="px-6 py-4">Mínimo</th>
+                            <th className="px-6 py-4">Usos</th>
+                            <th className="px-6 py-4">Vigencia</th>
+                            <th className="px-6 py-4">Estado</th>
+                            <th className="px-6 py-4 text-right">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-900 text-gray-300">
+                          {cupones.map((cupon) => (
+                            <tr key={cupon.id} className="hover:bg-zinc-900/10">
+                              <td className="px-6 py-4 font-mono text-xs font-bold text-primary">{cupon.codigo}</td>
+                              <td className="px-6 py-4 font-bold text-white">{cupon.descuento}%</td>
+                              <td className="px-6 py-4 text-xs">
+                                {cupon.montoMinimo > 0 ? `$${cupon.montoMinimo.toLocaleString("es-AR")}` : "—"}
+                              </td>
+                              <td className="px-6 py-4 text-xs">
+                                {cupon.usoActual}{cupon.usoMaximo ? ` / ${cupon.usoMaximo}` : " / ∞"}
+                              </td>
+                              <td className="px-6 py-4 text-xs text-gray-500">
+                                {cupon.validoDesde ? new Date(cupon.validoDesde).toLocaleDateString("es-AR") : "—"}
+                                {" → "}
+                                {cupon.validoHasta ? new Date(cupon.validoHasta).toLocaleDateString("es-AR") : "—"}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                  cupon.activo
+                                    ? "bg-green-500/10 text-green-400 ring-1 ring-inset ring-green-500/20"
+                                    : "bg-zinc-800 text-gray-500"
+                                }`}>
+                                  {cupon.activo ? "Activo" : "Inactivo"}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm(`¿Eliminar el cupón ${cupon.codigo}?`)) return;
+                                    await fetch(`/api/cupones?id=${cupon.id}`, { method: "DELETE" });
+                                    loadInitialData();
+                                  }}
+                                  className="inline-flex items-center p-2 rounded-lg bg-zinc-900 text-gray-300 hover:text-red-500 transition-colors border border-zinc-800"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -721,69 +852,42 @@ export default function AdminDashboard() {
       {modalAbierto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
           <div className="relative w-full max-w-2xl bg-zinc-950 border border-zinc-900 rounded-3xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto my-8">
-            {/* Close Button */}
-            <button
-              onClick={() => setModalAbierto(false)}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-zinc-900"
-            >
+            <button onClick={() => setModalAbierto(false)} className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-zinc-900">
               <X className="h-5 w-5" />
             </button>
-
             <h3 className="text-xl font-heading font-extrabold text-white">
               {prodEditando ? "Editar Producto" : "Nuevo Producto"}
             </h3>
 
             <form onSubmit={handleGuardarProducto} className="space-y-6">
               {errorModal && (
-                <div className="p-3 text-xs text-red-400 border border-red-500/20 bg-red-950/10 rounded-lg">
-                  {errorModal}
-                </div>
+                <div className="p-3 text-xs text-red-400 border border-red-500/20 bg-red-950/10 rounded-lg">{errorModal}</div>
               )}
 
-              {/* Basic Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Nombre del Producto *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formNombre}
-                    onChange={(e) => setFormNombre(e.target.value)}
-                    placeholder="Sony WH-1000XM4"
-                    className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none"
-                  />
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Nombre del Producto *</label>
+                  <input type="text" required value={formNombre} onChange={(e) => setFormNombre(e.target.value)} placeholder="Sony WH-1000XM4"
+                    className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Marca *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formMarca}
-                    onChange={(e) => setFormMarca(e.target.value)}
-                    placeholder="Sony"
-                    className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none"
-                  />
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Marca *</label>
+                  <input type="text" required value={formMarca} onChange={(e) => setFormMarca(e.target.value)} placeholder="Sony"
+                    className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Categoría *
-                  </label>
-                  <select
-                    value={formCategoria}
-                    onChange={(e) => setFormCategoria(e.target.value)}
-                    className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none"
-                  >
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Categoría *</label>
+                  <select value={formCategoria} onChange={(e) => setFormCategoria(e.target.value)}
+                    className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none">
                     <option value="Auriculares">Auriculares</option>
                     <option value="Cables">Cables</option>
                     <option value="Cargadores">Cargadores</option>
                     <option value="Computación">Computación</option>
+                    <option value="Gaming">Gaming</option>
+                    <option value="Audio">Audio</option>
                     <option value="Parlantes">Parlantes</option>
                     <option value="Smartwatch">Smartwatch</option>
                     <option value="Accesorios">Accesorios</option>
@@ -791,34 +895,18 @@ export default function AdminDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                    Precio ($ ARS) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    step="0.01"
-                    value={formPrecio}
-                    onChange={(e) => setFormPrecio(e.target.value)}
-                    placeholder="350000"
-                    className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none"
-                  />
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Precio ($ ARS) *</label>
+                  <input type="number" required min="0" step="0.01" value={formPrecio} onChange={(e) => setFormPrecio(e.target.value)} placeholder="350000"
+                    className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                  Imagen del Producto *
-                </label>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Imagen del Producto *</label>
                 <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr] gap-4">
                   <div className="h-36 rounded-xl overflow-hidden bg-black border border-zinc-900 flex items-center justify-center">
                     {formImagenUrl ? (
-                      <img
-                        src={formImagenUrl}
-                        alt="Vista previa del producto"
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={formImagenUrl} alt="Vista previa" className="h-full w-full object-cover" />
                     ) : (
                       <span className="text-xs text-gray-600 text-center px-4">Sin imagen</span>
                     )}
@@ -832,111 +920,155 @@ export default function AdminDashboard() {
                       ) : (
                         <span>Subir foto desde el celular</span>
                       )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        disabled={procesandoImagen}
-                        onChange={(e) => handleSeleccionarImagen(e.target.files?.[0])}
-                        className="sr-only"
-                      />
+                      <input type="file" accept="image/*" capture="environment" disabled={procesandoImagen}
+                        onChange={(e) => handleSeleccionarImagen(e.target.files?.[0])} className="sr-only" />
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={formImagenUrl}
-                      onChange={(e) => setFormImagenUrl(e.target.value)}
-                      placeholder="O pegá una URL de imagen"
-                      className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none"
-                    />
-                    <p className="text-[11px] text-gray-500">
-                      Podés sacar una foto o elegir una de la galería. Se comprime automáticamente para que cargue rápido.
-                    </p>
+                    <input type="text" required value={formImagenUrl} onChange={(e) => setFormImagenUrl(e.target.value)} placeholder="O pegá una URL de imagen"
+                      className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-sm text-white focus:border-primary focus:outline-none" />
+                    <p className="text-[11px] text-gray-500">Podés sacar una foto o elegir una de la galería.</p>
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center">
-                <input
-                  id="activo"
-                  type="checkbox"
-                  checked={formActivo}
-                  onChange={(e) => setFormActivo(e.target.checked)}
-                  className="h-4 w-4 rounded border-zinc-900 bg-black text-primary focus:ring-primary accent-primary"
-                />
-                <label htmlFor="activo" className="ml-2 block text-sm text-gray-300 font-semibold">
-                  Activo para la venta (visible en catálogo)
-                </label>
+                <input id="activo" type="checkbox" checked={formActivo} onChange={(e) => setFormActivo(e.target.checked)}
+                  className="h-4 w-4 rounded border-zinc-900 bg-black text-primary focus:ring-primary accent-primary" />
+                <label htmlFor="activo" className="ml-2 block text-sm text-gray-300 font-semibold">Activo para la venta</label>
               </div>
 
-              {/* Stocks by Branch */}
               <div className="border-t border-zinc-900 pt-4">
-                <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">
-                  Stock por Sucursal
-                </h4>
+                <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">Stock por Sucursal</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {sucursales.map((suc) => (
                     <div key={suc.id} className="p-3 bg-zinc-900/30 rounded-xl border border-zinc-900">
-                      <label className="block text-xs text-gray-400 font-semibold truncate mb-1">
-                        {suc.nombre}
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formStocks[suc.id] || "0"}
-                        onChange={(e) =>
-                          setFormStocks({
-                            ...formStocks,
-                            [suc.id]: e.target.value,
-                          })
-                        }
-                        className="w-full bg-black border border-zinc-900 rounded-lg py-1.5 px-2 text-sm text-white focus:border-primary focus:outline-none"
-                      />
+                      <label className="block text-xs text-gray-400 font-semibold truncate mb-1">{suc.nombre}</label>
+                      <input type="number" min="0" value={formStocks[suc.id] || "0"}
+                        onChange={(e) => setFormStocks({ ...formStocks, [suc.id]: e.target.value })}
+                        className="w-full bg-black border border-zinc-900 rounded-lg py-1.5 px-2 text-sm text-white focus:border-primary focus:outline-none" />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Technical Specifications */}
               <div className="border-t border-zinc-900 pt-4">
                 <div className="flex justify-between items-center mb-2">
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Especificaciones Técnicas (JSON)
-                  </label>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Especificaciones Técnicas (JSON)</label>
                   <span className="text-[10px] text-gray-500 font-medium">Formato clave-valor JSON</span>
                 </div>
-                <textarea
-                  value={formSpecs}
-                  onChange={(e) => setFormSpecs(e.target.value)}
-                  rows={4}
+                <textarea value={formSpecs} onChange={(e) => setFormSpecs(e.target.value)} rows={4}
                   className="w-full bg-black border border-zinc-900 rounded-xl py-2 px-3 text-xs font-mono text-gray-300 focus:border-primary focus:outline-none"
-                  placeholder='{\n  "autonomia": "30 horas",\n  "bateria": "4000mAh"\n}'
-                />
+                  placeholder='{\n  "autonomia": "30 horas",\n  "bateria": "4000mAh"\n}' />
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-4 border-t border-zinc-900 pt-6">
-                <button
-                  type="button"
-                  onClick={() => setModalAbierto(false)}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-3 rounded-xl border border-zinc-900 text-white hover:bg-zinc-900 transition-colors text-sm font-semibold"
-                >
+                <button type="button" onClick={() => setModalAbierto(false)}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-3 rounded-xl border border-zinc-900 text-white hover:bg-zinc-900 transition-colors text-sm font-semibold">
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={guardandoProducto || procesandoImagen}
-                  className="flex-grow inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-orange-500 transition-colors disabled:opacity-50"
-                >
+                <button type="submit" disabled={guardandoProducto || procesandoImagen}
+                  className="flex-grow inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-orange-500 transition-colors disabled:opacity-50">
                   {guardandoProducto ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...
-                    </>
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</>
                   ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" /> Guardar Producto
-                    </>
+                    <><Save className="h-4 w-4 mr-2" /> Guardar Producto</>
                   )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CUPON CREATE MODAL */}
+      {cuponModalAbierto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="relative w-full max-w-md bg-zinc-950 border border-zinc-900 rounded-3xl p-6 sm:p-8 space-y-6 my-8">
+            <button onClick={() => setCuponModalAbierto(false)} className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-zinc-900">
+              <X className="h-5 w-5" />
+            </button>
+            <h3 className="text-xl font-heading font-extrabold text-white">Nuevo Cupón</h3>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!cuponFormCodigo || !cuponFormDescuento) {
+                setErrorCuponModal("Código y descuento son requeridos");
+                return;
+              }
+              setGuardandoCupon(true);
+              setErrorCuponModal(null);
+              try {
+                const res = await fetch("/api/cupones", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    codigo: cuponFormCodigo,
+                    descuento: parseFloat(cuponFormDescuento),
+                    montoMinimo: cuponFormMinimo || undefined,
+                    usoMaximo: cuponFormMaxUsos || undefined,
+                    validoDesde: cuponFormDesde || undefined,
+                    validoHasta: cuponFormHasta || undefined,
+                  }),
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                setCuponModalAbierto(false);
+                loadInitialData();
+              } catch (err) {
+                setErrorCuponModal(err instanceof Error ? err.message : "Error al crear cupón");
+              } finally {
+                setGuardandoCupon(false);
+              }
+            }} className="space-y-4">
+              {errorCuponModal && (
+                <div className="p-3 text-xs text-red-400 border border-red-500/20 bg-red-950/10 rounded-lg">{errorCuponModal}</div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Código del cupón *</label>
+                <input type="text" required value={cuponFormCodigo} onChange={(e) => setCuponFormCodigo(e.target.value.toUpperCase())} placeholder="EJEMPLO10"
+                  className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-sm text-white uppercase font-mono focus:border-primary focus:outline-none" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Descuento (%) *</label>
+                  <input type="number" required min="1" max="100" value={cuponFormDescuento} onChange={(e) => setCuponFormDescuento(e.target.value)} placeholder="10"
+                    className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-sm text-white focus:border-primary focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Monto mínimo ($)</label>
+                  <input type="number" min="0" value={cuponFormMinimo} onChange={(e) => setCuponFormMinimo(e.target.value)} placeholder="0"
+                    className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-sm text-white focus:border-primary focus:outline-none" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Máximo de usos</label>
+                <input type="number" min="1" value={cuponFormMaxUsos} onChange={(e) => setCuponFormMaxUsos(e.target.value)} placeholder="Sin límite"
+                  className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-sm text-white focus:border-primary focus:outline-none" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Válido desde</label>
+                  <input type="date" value={cuponFormDesde} onChange={(e) => setCuponFormDesde(e.target.value)}
+                    className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-sm text-white focus:border-primary focus:outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Válido hasta</label>
+                  <input type="date" value={cuponFormHasta} onChange={(e) => setCuponFormHasta(e.target.value)}
+                    className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-sm text-white focus:border-primary focus:outline-none" />
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-2">
+                <button type="button" onClick={() => setCuponModalAbierto(false)}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-3 rounded-xl border border-zinc-900 text-white hover:bg-zinc-900 transition-colors text-sm font-semibold">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={guardandoCupon}
+                  className="flex-1 inline-flex items-center justify-center px-6 py-3 rounded-xl bg-primary text-white font-bold text-sm hover:bg-orange-500 transition-colors disabled:opacity-50">
+                  {guardandoCupon ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Guardando...</> : "Crear Cupón"}
                 </button>
               </div>
             </form>
