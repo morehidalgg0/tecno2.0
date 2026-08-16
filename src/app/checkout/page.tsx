@@ -31,7 +31,8 @@ export default function CheckoutPage() {
   const [cotizandoEnvio, setCotizandoEnvio] = useState(false);
   const [costoEnvioReal, setCostoEnvioReal] = useState<number | null>(null);
   const [diasEstimados, setDiasEstimados] = useState<number | null>(null);
-  const costoEnvio = tipoEnvio === "ENVIO" ? (costoEnvioReal ?? (precioTotal >= 100000 ? 0 : 5000)) : 0;
+  const COSTO_ENVIO_FIJO = Number(process.env.NEXT_PUBLIC_ENVIO_FIJO) || 5000;
+  const costoEnvio = tipoEnvio === "ENVIO" ? (costoEnvioReal ?? COSTO_ENVIO_FIJO) : 0;
 
   // Cupón
   const [cuponCode, setCuponCode] = useState("");
@@ -86,7 +87,7 @@ export default function CheckoutPage() {
         }
       } catch {
         if (!cancelled) {
-          setCostoEnvioReal(5000);
+          setCostoEnvioReal(COSTO_ENVIO_FIJO);
           setDiasEstimados(3);
         }
       } finally {
@@ -132,11 +133,6 @@ export default function CheckoutPage() {
 
     if (tipoEnvio === "ENVIO" && !domicilio.trim()) {
       setError("Por favor, ingresá tu dirección de envío.");
-      return;
-    }
-
-    if (tipoEnvio === "ENVIO" && !codigoPostal.trim()) {
-      setError("Por favor, ingresá tu código postal.");
       return;
     }
 
@@ -348,7 +344,7 @@ export default function CheckoutPage() {
                       type="text"
                       value={domicilio}
                       onChange={(e) => setDomicilio(e.target.value)}
-                      placeholder="Calle, número, piso, depto"
+                      placeholder="Calle, número, piso, depto, localidad"
                       className="w-full bg-black border border-zinc-900 rounded-xl py-2.5 px-3 text-xs text-white focus:border-primary focus:outline-none"
                     />
                   </div>
@@ -369,17 +365,15 @@ export default function CheckoutPage() {
                       <span className="flex items-center gap-1 text-gray-400">
                         <Loader2 className="h-3 w-3 animate-spin" /> Calculando envío...
                       </span>
-                    ) : costoEnvioReal !== null ? (
+                    ) : (
                       <span className="text-white">
-                        Envío: <span className="font-bold">${costoEnvioReal.toLocaleString("es-AR")}</span>
+                        Envío: <span className="font-bold">${costoEnvio.toLocaleString("es-AR")}</span>
                         {diasEstimados && (
                           <span className="text-gray-500 ml-1">
                             · {diasEstimados} {diasEstimados === 1 ? "día" : "días"} hábiles
                           </span>
                         )}
                       </span>
-                    ) : (
-                      <span className="text-gray-500">Ingresá el código postal para calcular</span>
                     )}
                   </div>
                 </div>
