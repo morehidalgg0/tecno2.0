@@ -320,9 +320,9 @@ function HomeContent() {
                 return (
                   <div key={prod.id} className="group relative flex flex-col justify-between rounded-2xl border border-zinc-900 bg-zinc-950/40 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-zinc-800 hover:bg-zinc-950/80 hover:shadow-2xl hover:shadow-orange-500/[0.01]">
                     <Link href={`/productos/${prod.id}`} className="block">
-                      <div className={`relative aspect-square w-full overflow-hidden rounded-xl flex items-center justify-center mb-4 transition-colors ${prod.colorFondo || "bg-zinc-900/60"}`}>
-                        <span className="absolute top-2.5 left-2.5 bg-black text-white text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md tracking-wider border border-zinc-900">{prod.categoria}</span>
-                        <img src={prod.imagenUrl} alt={prod.nombre} className="object-cover w-4/5 h-4/5 transform transition-transform duration-500 group-hover:scale-[1.05]"
+                      <div className={`relative aspect-square w-full overflow-hidden rounded-xl flex items-center justify-center mb-4 p-4 transition-colors ${prod.colorFondo || "bg-zinc-900/60"}`}>
+                        <span className="absolute top-2.5 left-2.5 bg-black text-white text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md tracking-wider border border-zinc-900 z-10">{prod.categoria}</span>
+                        <img src={prod.imagenUrl} alt={prod.nombre} className="object-cover w-full h-full rounded-xl transform transition-transform duration-500 group-hover:scale-[1.05]"
                           onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=500"; }} />
                         {!tieneStock && (
                           <div className="absolute inset-0 bg-black/75 backdrop-blur-[1px] flex items-center justify-center">
