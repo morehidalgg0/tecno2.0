@@ -4,21 +4,26 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
-import { ShoppingCart, MapPin, Search, User } from "lucide-react";
+import { ShoppingCart, Search, User } from "lucide-react";
 
 function HeaderContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const { sucursalSeleccionada, setSucursalSeleccionada, sucursales, carrito } = useCart();
+  const { carrito } = useCart();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [logueado, setLogueado] = useState(false);
   const totalItems = carrito.reduce((sum, item) => sum + item.cantidad, 0);
 
+  const prevQueryRef = React.useRef(searchParams.get("q") || "");
+
   useEffect(() => {
     const q = searchParams.get("q") || "";
-    setSearchQuery(q);
+    if (prevQueryRef.current !== q) {
+      setSearchQuery(q);
+      prevQueryRef.current = q;
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -49,7 +54,7 @@ function HeaderContent() {
     const params = new URLSearchParams(searchParams.toString());
     params.set("categoria", slug);
     params.delete("q");
-    router.push(`/?${params.toString()}`);
+    router.replace(`/?${params.toString()}`, { scroll: false });
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -113,23 +118,6 @@ function HeaderContent() {
               <input type="text" placeholder="Buscar..." value={searchQuery} onChange={handleSearchChange}
                 className="w-full bg-zinc-900/90 border border-zinc-850 rounded-full py-2 pl-9 pr-3 text-xs text-white placeholder-gray-500 focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" />
             </form>
-
-            {/* Sucursal Selector */}
-            {sucursales.length > 0 && (
-              <div className="hidden sm:flex items-center gap-1.5 bg-zinc-900/95 border border-zinc-850 rounded-full px-3 py-2 hover:border-zinc-700 transition-colors">
-                <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                <select value={sucursalSeleccionada?.id || ""} onChange={(e) => {
-                    const selected = sucursales.find((s) => s.id === e.target.value);
-                    if (selected) setSucursalSeleccionada(selected);
-                  }}
-                  className="bg-transparent border-0 p-0 pr-6 text-[10px] font-bold tracking-wider text-gray-300 focus:ring-0 focus:outline-none cursor-pointer hover:text-white transition-colors"
-                  style={{ backgroundImage: "none", appearance: "none" }}>
-                  {sucursales.map((suc) => (
-                    <option key={suc.id} value={suc.id} className="bg-black text-white">{suc.nombre.replace("Sucursal ", "")}</option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             {/* User / Login */}
             <Link

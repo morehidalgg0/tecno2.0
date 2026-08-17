@@ -41,7 +41,7 @@ const CATEGORIAS_TAB = ["Todos", "Computación", "Gaming", "Audio", "Accesorios"
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { sucursalSeleccionada, agregarAlCarrito } = useCart();
+  const { agregarAlCarrito } = useCart();
 
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -55,20 +55,17 @@ function HomeContent() {
 
   const prevCategoriaRef = React.useRef(categoriaSeleccionada);
   const prevBusquedaRef = React.useRef(busqueda);
-  const prevSucursalRef = React.useRef(sucursalSeleccionada?.id);
 
   useEffect(() => {
     if (
       prevCategoriaRef.current !== categoriaSeleccionada ||
-      prevBusquedaRef.current !== busqueda ||
-      prevSucursalRef.current !== sucursalSeleccionada?.id
+      prevBusquedaRef.current !== busqueda
     ) {
       setPage(1);
       prevCategoriaRef.current = categoriaSeleccionada;
       prevBusquedaRef.current = busqueda;
-      prevSucursalRef.current = sucursalSeleccionada?.id;
     }
-  }, [categoriaSeleccionada, busqueda, sucursalSeleccionada?.id]);
+  }, [categoriaSeleccionada, busqueda]);
 
   useEffect(() => {
     async function loadProductos() {
@@ -78,9 +75,6 @@ function HomeContent() {
         const params: string[] = [];
         if (categoriaSeleccionada !== "Todos") {
           params.push(`categoria=${encodeURIComponent(categoriaSeleccionada)}`);
-        }
-        if (sucursalSeleccionada) {
-          params.push(`sucursalId=${sucursalSeleccionada.id}`);
         }
         if (busqueda) {
           params.push(`q=${encodeURIComponent(busqueda)}`);
@@ -109,7 +103,7 @@ function HomeContent() {
       }
     }
     loadProductos();
-  }, [categoriaSeleccionada, sucursalSeleccionada, busqueda, page]);
+  }, [categoriaSeleccionada, busqueda, page]);
 
   const handleAgregarClick = (e: React.MouseEvent, producto: Producto) => {
     e.preventDefault();
@@ -129,7 +123,7 @@ function HomeContent() {
     } else {
       params.set("categoria", cat);
     }
-    router.push(`/?${params.toString()}`);
+    router.replace(`/?${params.toString()}`, { scroll: false });
   };
 
   const productosFiltrados = productos.filter((prod) => {
@@ -304,13 +298,6 @@ function HomeContent() {
           </div>
         </div>
 
-        {sucursalSeleccionada && (
-          <div className="mb-6 flex items-center gap-2 text-xs font-semibold text-primary">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            <span>Mostrando stock disponible en: {sucursalSeleccionada.nombre} ({sucursalSeleccionada.ciudad})</span>
-          </div>
-        )}
-
         {busqueda && (
           <div className="mb-6 text-sm text-gray-400">
             Resultados de búsqueda para: &quot;<span className="text-white font-bold">{busqueda}</span>&quot;
@@ -324,8 +311,8 @@ function HomeContent() {
           </div>
         ) : productosFiltrados.length === 0 ? (
           <div className="text-center py-24 border border-zinc-900 rounded-2xl bg-zinc-950/20">
-            <p className="text-gray-400 text-base font-medium">No encontramos productos en esta sucursal.</p>
-            <button onClick={() => { const params = new URLSearchParams(searchParams.toString()); params.delete("categoria"); params.delete("q"); router.push(`/?${params.toString()}`); }}
+            <p className="text-gray-400 text-base font-medium">No encontramos productos en esta categoría.</p>
+            <button onClick={() => { const params = new URLSearchParams(searchParams.toString()); params.delete("categoria"); params.delete("q"); router.replace(`/?${params.toString()}`, { scroll: false }); }}
               className="mt-4 inline-flex items-center text-primary text-xs font-bold uppercase tracking-wider hover:underline">
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Reestablecer filtros
             </button>
@@ -339,9 +326,8 @@ function HomeContent() {
               "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
             }`}>
               {productosFiltrados.map((prod) => {
-                const stockInfo = prod.stocks.find((s) => s.sucursalId === sucursalSeleccionada?.id);
-                const stock = stockInfo?.cantidad ?? 0;
-                const tieneStock = stock > 0;
+                const stockTotal = prod.stocks.reduce((sum, s) => sum + s.cantidad, 0);
+                const tieneStock = stockTotal > 0;
 
                 return (
                   <div key={prod.id} className="group relative flex flex-col justify-between rounded-2xl border border-zinc-900 bg-zinc-950/40 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-zinc-800 hover:bg-zinc-950/80 hover:shadow-2xl hover:shadow-orange-500/[0.01]">
