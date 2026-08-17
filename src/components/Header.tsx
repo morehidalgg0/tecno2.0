@@ -51,10 +51,12 @@ function HeaderContent() {
   ];
 
   const handleCategoryClick = (slug: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     params.set("categoria", slug);
     params.delete("q");
-    router.replace(`/?${params.toString()}`, { scroll: false });
+    const newUrl = `/?${params.toString()}`;
+    window.history.pushState({}, "", newUrl);
+    window.dispatchEvent(new PopStateEvent("popstate"));
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {

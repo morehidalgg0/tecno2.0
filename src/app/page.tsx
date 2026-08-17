@@ -117,13 +117,15 @@ function HomeContent() {
   };
 
   const handleCategoryTabClick = (cat: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(window.location.search);
     if (cat === "Todos") {
       params.delete("categoria");
     } else {
       params.set("categoria", cat);
     }
-    router.replace(`/?${params.toString()}`, { scroll: false });
+    const newUrl = `/?${params.toString()}`;
+    window.history.pushState({}, "", newUrl);
+    window.dispatchEvent(new PopStateEvent("popstate"));
   };
 
   const productosFiltrados = productos.filter((prod) => {
@@ -312,7 +314,14 @@ function HomeContent() {
         ) : productosFiltrados.length === 0 ? (
           <div className="text-center py-24 border border-zinc-900 rounded-2xl bg-zinc-950/20">
             <p className="text-gray-400 text-base font-medium">No encontramos productos en esta categoría.</p>
-            <button onClick={() => { const params = new URLSearchParams(searchParams.toString()); params.delete("categoria"); params.delete("q"); router.replace(`/?${params.toString()}`, { scroll: false }); }}
+            <button onClick={() => {
+                const params = new URLSearchParams(window.location.search);
+                params.delete("categoria");
+                params.delete("q");
+                const newUrl = `/?${params.toString()}`;
+                window.history.pushState({}, "", newUrl);
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
               className="mt-4 inline-flex items-center text-primary text-xs font-bold uppercase tracking-wider hover:underline">
               <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Reestablecer filtros
             </button>
