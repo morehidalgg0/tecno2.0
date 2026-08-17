@@ -140,6 +140,7 @@ function filtrarProductosMock(
     });
   }
 
+  list.sort((a, b) => a.nombre.localeCompare(b.nombre, "es") || a.precio - b.precio);
   const total = list.length;
   const start = (page - 1) * ITEMS_PER_PAGE;
   const paginated = list.slice(start, start + ITEMS_PER_PAGE);
@@ -204,7 +205,7 @@ export async function GET(req: NextRequest) {
             include: { sucursal: true },
           },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ nombre: "asc" }, { precio: "asc" }],
         skip: (page - 1) * ITEMS_PER_PAGE,
         take: ITEMS_PER_PAGE,
       }),

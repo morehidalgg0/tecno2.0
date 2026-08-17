@@ -53,9 +53,22 @@ function HomeContent() {
   const categoriaSeleccionada = searchParams.get("categoria") || "Todos";
   const busqueda = searchParams.get("q") || "";
 
+  const prevCategoriaRef = React.useRef(categoriaSeleccionada);
+  const prevBusquedaRef = React.useRef(busqueda);
+  const prevSucursalRef = React.useRef(sucursalSeleccionada?.id);
+
   useEffect(() => {
-    setPage(1);
-  }, [categoriaSeleccionada, busqueda, sucursalSeleccionada]);
+    if (
+      prevCategoriaRef.current !== categoriaSeleccionada ||
+      prevBusquedaRef.current !== busqueda ||
+      prevSucursalRef.current !== sucursalSeleccionada?.id
+    ) {
+      setPage(1);
+      prevCategoriaRef.current = categoriaSeleccionada;
+      prevBusquedaRef.current = busqueda;
+      prevSucursalRef.current = sucursalSeleccionada?.id;
+    }
+  }, [categoriaSeleccionada, busqueda, sucursalSeleccionada?.id]);
 
   useEffect(() => {
     async function loadProductos() {
@@ -235,6 +248,14 @@ function HomeContent() {
         </div>
 
         <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-900 scrollbar-track-transparent">
+          <div onClick={() => handleCategoryTabClick("Computación")} className="group relative flex-none w-80 aspect-[4/3] rounded-2xl overflow-hidden border border-zinc-900 bg-zinc-950 cursor-pointer hover:border-zinc-800 transition-all">
+            <img src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&q=80" alt="Computación" className="object-cover w-full h-full opacity-40 group-hover:scale-105 transition-transform duration-500" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent p-6 flex flex-col justify-end">
+              <span className="text-[9px] font-bold text-primary uppercase tracking-widest mb-1">NOTEBOOKS Y PCs</span>
+              <h3 className="text-xl font-heading font-extrabold text-white">COMPUTACIÓN</h3>
+              <p className="text-xs text-gray-500 mt-1">Laptops, monitores y periféricos de alto rendimiento.</p>
+            </div>
+          </div>
           <div onClick={() => handleCategoryTabClick("Gaming")} className="group relative flex-none w-80 aspect-[4/3] rounded-2xl overflow-hidden border border-zinc-900 bg-zinc-950 cursor-pointer hover:border-zinc-800 transition-all">
             <img src="https://images.unsplash.com/photo-1618609377864-68609b857e90?w=600&q=80" alt="Gaming Gear" className="object-cover w-full h-full opacity-40 group-hover:scale-105 transition-transform duration-500" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent p-6 flex flex-col justify-end">
@@ -255,7 +276,7 @@ function HomeContent() {
             <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600&q=80" alt="Smartphones" className="object-cover w-full h-full opacity-40 group-hover:scale-105 transition-transform duration-500" />
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent p-6 flex flex-col justify-end">
               <span className="text-[9px] font-bold text-primary uppercase tracking-widest mb-1">CELULARES Y CARGA</span>
-              <h3 className="text-xl font-heading font-extrabold text-white">SMARTPHONES</h3>
+              <h3 className="text-xl font-heading font-extrabold text-white">ACCESORIOS</h3>
               <p className="text-xs text-gray-500 mt-1">Dispositivos móviles y cargadores premium.</p>
             </div>
           </div>
@@ -311,7 +332,12 @@ function HomeContent() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+            <div className={`grid gap-6 sm:gap-8 ${
+              productosFiltrados.length === 1 ? "grid-cols-1 max-w-sm" :
+              productosFiltrados.length === 2 ? "grid-cols-1 sm:grid-cols-2 max-w-2xl" :
+              productosFiltrados.length <= 4 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" :
+              "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+            }`}>
               {productosFiltrados.map((prod) => {
                 const stockInfo = prod.stocks.find((s) => s.sucursalId === sucursalSeleccionada?.id);
                 const stock = stockInfo?.cantidad ?? 0;
