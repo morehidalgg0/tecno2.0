@@ -70,7 +70,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     );
   }
 
-  if (!producto) {
+  if (!producto || !producto.imagenUrl || !producto.imagenUrl.trim()) {
     return (
       <div className="min-h-screen bg-black flex flex-col">
         <Header />

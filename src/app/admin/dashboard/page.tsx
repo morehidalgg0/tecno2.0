@@ -664,23 +664,30 @@ export default function AdminDashboard() {
                                 ))}
                               </td>
                               <td className="px-6 py-4">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                    prod.activo
-                                      ? "bg-green-500/10 text-green-400 ring-1 ring-inset ring-green-500/20"
-                                      : "bg-zinc-800 text-gray-500"
-                                  }`}
-                                >
-                                  {prod.activo ? (
-                                    <>
-                                      <Eye className="h-3 w-3 mr-1" /> Activo
-                                    </>
-                                  ) : (
-                                    <>
-                                      <EyeOff className="h-3 w-3 mr-1" /> Inactivo
-                                    </>
+                                <div className="flex flex-col gap-1 items-start">
+                                  <span
+                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                      prod.activo
+                                        ? "bg-green-500/10 text-green-400 ring-1 ring-inset ring-green-500/20"
+                                        : "bg-zinc-800 text-gray-500"
+                                    }`}
+                                  >
+                                    {prod.activo ? (
+                                      <>
+                                        <Eye className="h-3 w-3 mr-1" /> Activo
+                                      </>
+                                    ) : (
+                                      <>
+                                        <EyeOff className="h-3 w-3 mr-1" /> Inactivo
+                                      </>
+                                    )}
+                                  </span>
+                                  {(!prod.imagenUrl || !prod.imagenUrl.trim()) && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 ring-1 ring-inset ring-amber-500/20">
+                                      Sin imagen (Oculto)
+                                    </span>
                                   )}
-                                </span>
+                                </div>
                               </td>
                               <td className="px-6 py-4 text-right space-x-2 shrink-0">
                                 <button

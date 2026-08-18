@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
       // Obtener el precio de la primera variante
       const precio = parseFloat(tnProd.variants?.[0]?.price) || 0;
       
-      // Obtener la URL de la primera imagen
-      const imagenUrl = tnProd.images?.[0]?.src || "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=500";
+      // Obtener la URL de la primera imagen (si no tiene, queda vacía para ocultarlo en la tienda)
+      const imagenUrl = tnProd.images?.[0]?.src || "";
       
       // Sumar el stock de todas las variantes
       const stockTotal = tnProd.variants?.reduce(

@@ -115,7 +115,7 @@ function filtrarProductosMock(
   let list = [...MOCK_PRODUCTOS];
 
   if (!isAdminView) {
-    list = list.filter((p) => p.activo);
+    list = list.filter((p) => p.activo && Boolean(p.imagenUrl && p.imagenUrl.trim() !== ""));
   }
 
   if (categoria && categoria !== "Todos") {
@@ -169,6 +169,7 @@ export async function GET(req: NextRequest) {
     const where: Prisma.ProductoWhereInput = {};
     if (!isAdminView) {
       where.activo = true;
+      where.imagenUrl = { not: "" };
     }
     if (categoria && categoria !== "Todos") {
       where.categoria = { equals: categoria, mode: "insensitive" };

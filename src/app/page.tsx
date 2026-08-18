@@ -129,10 +129,11 @@ function HomeContent() {
   };
 
   const productosFiltrados = productos.filter((prod) => {
+    const tieneImagen = Boolean(prod.imagenUrl && prod.imagenUrl.trim() !== "");
     const cumpleBusqueda =
       prod.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       prod.marca.toLowerCase().includes(busqueda.toLowerCase());
-    return cumpleBusqueda;
+    return tieneImagen && cumpleBusqueda;
   });
 
   return (
