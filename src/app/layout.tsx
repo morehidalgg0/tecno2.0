@@ -15,7 +15,12 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Tecno Güemes | Tecnología y Accesorios Premium",
-  description: "Tienda premium de tecnología, accesorios, auriculares, computación y más. Retirá en nuestras sucursales físicas o pagá online de forma segura con Mercado Pago.",
+  description: "Tienda premium de tecnología, accesorios, auriculares, computación y más. Pagá online de forma segura con Mercado Pago.",
+  icons: {
+    icon: "/favicon.jpg",
+    shortcut: "/favicon.jpg",
+    apple: "/favicon.jpg",
+  },
 };
 
 export default function RootLayout({
