@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyAdminToken } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
+import { esImagenValida } from "@/lib/utils";
 
 export const MOCK_PRODUCTOS = [
   {
@@ -115,7 +116,7 @@ function filtrarProductosMock(
   let list = [...MOCK_PRODUCTOS];
 
   if (!isAdminView) {
-    list = list.filter((p) => p.activo && Boolean(p.imagenUrl && p.imagenUrl.trim() !== ""));
+    list = list.filter((p) => p.activo && esImagenValida(p.imagenUrl));
   }
 
   if (categoria && categoria !== "Todos") {
@@ -169,7 +170,14 @@ export async function GET(req: NextRequest) {
     const where: Prisma.ProductoWhereInput = {};
     if (!isAdminView) {
       where.activo = true;
-      where.imagenUrl = { not: "" };
+      where.AND = [
+        { imagenUrl: { not: "" } },
+        { imagenUrl: { not: "null" } },
+        { imagenUrl: { not: "undefined" } },
+        { imagenUrl: { not: { contains: "photo-1531297484001-80022131f5a1" } } },
+        { imagenUrl: { not: { contains: "placeholder" } } },
+        { imagenUrl: { not: { contains: "no-image" } } },
+      ];
     }
     if (categoria && categoria !== "Todos") {
       where.categoria = { equals: categoria, mode: "insensitive" };

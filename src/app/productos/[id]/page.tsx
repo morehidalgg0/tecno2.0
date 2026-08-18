@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
+import { esImagenValida } from "@/lib/utils";
 import { ArrowLeft, Check, Plus, Minus, Loader2, Info, MapPin } from "lucide-react";
 
 interface StockInfo {
@@ -70,7 +71,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     );
   }
 
-  if (!producto || !producto.imagenUrl || !producto.imagenUrl.trim()) {
+  if (!producto || !esImagenValida(producto.imagenUrl)) {
     return (
       <div className="min-h-screen bg-black flex flex-col">
         <Header />

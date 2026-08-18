@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
+import { esImagenValida } from "@/lib/utils";
 import {
   Truck,
   CreditCard,
@@ -46,6 +47,7 @@ function HomeContent() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargando, setCargando] = useState(true);
   const [productoAgregadoId, setProductoAgregadoId] = useState<string | null>(null);
+  const [failedImageIds, setFailedImageIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
@@ -129,7 +131,7 @@ function HomeContent() {
   };
 
   const productosFiltrados = productos.filter((prod) => {
-    const tieneImagen = Boolean(prod.imagenUrl && prod.imagenUrl.trim() !== "");
+    const tieneImagen = esImagenValida(prod.imagenUrl) && !failedImageIds.has(prod.id);
     const cumpleBusqueda =
       prod.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
       prod.marca.toLowerCase().includes(busqueda.toLowerCase());
@@ -345,7 +347,9 @@ function HomeContent() {
                       <div className={`relative aspect-square w-full overflow-hidden rounded-xl flex items-center justify-center mb-4 p-4 transition-colors ${prod.colorFondo || "bg-zinc-900/60"}`}>
                         <span className="absolute top-2.5 left-2.5 bg-black text-white text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-md tracking-wider border border-zinc-900 z-10">{prod.categoria}</span>
                         <img src={prod.imagenUrl} alt={prod.nombre} className="object-cover w-full h-full rounded-xl transform transition-transform duration-500 group-hover:scale-[1.05]"
-                          onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=500"; }} />
+                          onError={() => {
+                            setFailedImageIds((prev) => new Set(prev).add(prod.id));
+                          }} />
                         {!tieneStock && (
                           <div className="absolute inset-0 bg-black/75 backdrop-blur-[1px] flex items-center justify-center">
                             <span className="text-white text-[10px] font-extrabold uppercase bg-red-650/80 border border-red-500/50 px-3 py-1 rounded-md tracking-wider">Sin stock</span>

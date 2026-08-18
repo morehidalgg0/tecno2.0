@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { esImagenValida } from "@/lib/utils";
 import { 
   Cpu, LogOut, Package, ShoppingBag, RefreshCw, Plus, Edit, Trash2, 
   X, Loader2, Save, Eye, EyeOff, Tag, Truck, Download
@@ -682,7 +683,7 @@ export default function AdminDashboard() {
                                       </>
                                     )}
                                   </span>
-                                  {(!prod.imagenUrl || !prod.imagenUrl.trim()) && (
+                                  {!esImagenValida(prod.imagenUrl) && (
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 ring-1 ring-inset ring-amber-500/20">
                                       Sin imagen (Oculto)
                                     </span>
