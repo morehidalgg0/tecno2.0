@@ -133,9 +133,6 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               <p className="text-3xl sm:text-4xl font-extrabold text-white mt-1">
                 ${producto.precio.toLocaleString("es-AR")}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                12x ${Math.round(producto.precio / 12).toLocaleString("es-AR")} sin interés
-              </p>
             </div>
 
             {/* Stock indicator */}

@@ -160,7 +160,7 @@ function HomeContent() {
               </h1>
 
               <p className="text-gray-400 text-sm sm:text-base leading-relaxed max-w-xl font-sans">
-                Redefiní tu set de computación, gaming y audio con dispositivos premium de última generación. Envíos gratis a todo el país y 12 cuotas sin interés con garantía oficial.
+                Redefiní tu set de computación, gaming y audio con dispositivos premium de última generación. Envíos gratis a todo el país con garantía oficial.
               </p>
 
               <div className="flex flex-wrap gap-4 pt-2">
@@ -210,8 +210,8 @@ function HomeContent() {
                 <CreditCard className="h-5 w-5" />
               </div>
               <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-white">Cuotas sin interés</h4>
-                <p className="text-[11px] text-gray-500 mt-0.5">Hasta 12 cuotas fijas con bancos seleccionados</p>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-white">Pagos seguros</h4>
+                <p className="text-[11px] text-gray-500 mt-0.5">Pagá con Mercado Pago de forma segura</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -362,7 +362,6 @@ function HomeContent() {
                     <div className="flex flex-col mt-4 pt-4 border-t border-zinc-900/60">
                       <div className="mb-4">
                         <span className="block text-xl font-extrabold text-white">$ {prod.precio.toLocaleString("es-AR")}</span>
-                        <span className="block text-[10px] text-gray-500 font-semibold mt-0.5">12x $ {Math.round(prod.precio / 12).toLocaleString("es-AR")}</span>
                       </div>
                       <button disabled={!tieneStock} onClick={(e) => handleAgregarClick(e, prod)}
                         className={`w-full py-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition-all cursor-pointer ${!tieneStock ? "bg-zinc-900/30 border-zinc-900 text-gray-600 cursor-not-allowed" : productoAgregadoId === prod.id ? "bg-green-600/10 border-green-500 text-green-400" : "bg-transparent border-zinc-800 text-white hover:bg-primary hover:border-primary hover:text-white"}`}>

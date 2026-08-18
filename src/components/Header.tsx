@@ -92,10 +92,11 @@ function HeaderContent() {
           {/* Logo */}
           <div className="flex items-center shrink-0">
             <Link href="/">
-              <div className="bg-black border border-zinc-850 px-3 py-1.5 rounded-lg flex flex-col items-center hover:border-zinc-700 transition-colors">
-                <span className="font-heading text-[10px] font-semibold tracking-[0.25em] text-white leading-none">TECNO</span>
-                <span className="font-heading text-sm font-extrabold text-primary tracking-wider leading-none mt-0.5">GÜEMES</span>
-              </div>
+              <img
+                src="/logo.png"
+                alt="Güemes"
+                className="h-8 w-auto object-contain"
+              />
             </Link>
           </div>
 
