@@ -67,7 +67,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       productos,
-      sucursalId,
       tipoEnvio = "RETIRO",
       domicilio = null,
       codigoPostal = null,
@@ -79,7 +78,6 @@ export async function POST(req: NextRequest) {
       contactoEmail = null,
     } = body as {
       productos: Array<{ id: string; cantidad: number }>;
-      sucursalId: string;
       tipoEnvio?: string;
       domicilio?: string | null;
       codigoPostal?: string | null;
@@ -94,13 +92,6 @@ export async function POST(req: NextRequest) {
     if (!productos || productos.length === 0) {
       return NextResponse.json(
         { error: "Productos son requeridos" },
-        { status: 400 }
-      );
-    }
-
-    if (tipoEnvio === "RETIRO" && !sucursalId) {
-      return NextResponse.json(
-        { error: "Sucursal requerida para retiro" },
         { status: 400 }
       );
     }
@@ -141,9 +132,7 @@ export async function POST(req: NextRequest) {
       const dbProd = await db.producto.findUnique({
         where: { id: item.id },
         include: {
-          stocks: {
-            where: sucursalId ? { sucursalId } : undefined,
-          },
+          stocks: true,
         },
       });
 
@@ -161,17 +150,15 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Validar stock solo para retiro
-      if (tipoEnvio === "RETIRO" && sucursalId) {
-        const stockSucursal = dbProd.stocks[0]?.cantidad || 0;
-        if (stockSucursal < item.cantidad) {
-          return NextResponse.json(
-            {
-              error: `Stock insuficiente para ${dbProd.nombre}. Disponible: ${stockSucursal}, Solicitado: ${item.cantidad}`,
-            },
-            { status: 400 }
-          );
-        }
+      // Validar stock total disponible
+      const stockTotal = dbProd.stocks.reduce((sum, s) => sum + s.cantidad, 0);
+      if (stockTotal < item.cantidad) {
+        return NextResponse.json(
+          {
+            error: `Stock insuficiente para ${dbProd.nombre}. Disponible: ${stockTotal}, Solicitado: ${item.cantidad}`,
+          },
+          { status: 400 }
+        );
       }
 
       dbProductos.push({
@@ -215,7 +202,7 @@ export async function POST(req: NextRequest) {
         codigoPostal,
         telefono,
         estado: "PENDIENTE",
-        sucursalId: tipoEnvio === "RETIRO" ? sucursalId : null,
+        sucursalId: null,
         cuponCode: cuponCode?.toUpperCase() || null,
         clienteId: clienteData?.id || null,
         clienteEmail: clienteData?.email || contactoEmail,

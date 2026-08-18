@@ -11,7 +11,6 @@ export default function CheckoutPage() {
     carrito,
     quitarDelCarrito,
     actualizarCantidad,
-    sucursalSeleccionada,
     precioTotal,
   } = useCart();
 
@@ -148,7 +147,6 @@ export default function CheckoutPage() {
             id: item.id,
             cantidad: item.cantidad,
           })),
-          sucursalId: sucursalSeleccionada?.id,
           tipoEnvio,
           domicilio: tipoEnvio === "ENVIO" ? domicilio : null,
           codigoPostal: tipoEnvio === "ENVIO" ? codigoPostal : null,
@@ -376,14 +374,6 @@ export default function CheckoutPage() {
                       </span>
                     )}
                   </div>
-                </div>
-              )}
-
-              {/* Sucursal si retiro */}
-              {tipoEnvio === "RETIRO" && sucursalSeleccionada && (
-                <div className="flex justify-between text-sm text-gray-400">
-                  <span>Retiro en sucursal:</span>
-                  <span className="text-white font-semibold">{sucursalSeleccionada.nombre}</span>
                 </div>
               )}
 

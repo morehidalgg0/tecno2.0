@@ -210,19 +210,13 @@ export default function MisPedidosPage() {
                     <span>
                       <span className="text-gray-500">Modalidad: </span>
                       <span className="text-white font-semibold">
-                        {orden.tipoEnvio === "ENVIO" ? "Envío a domicilio" : "Retiro en sucursal"}
+                        {orden.tipoEnvio === "ENVIO" ? "Envío a domicilio" : "Retiro en local"}
                       </span>
                     </span>
                     {orden.tipoEnvio === "ENVIO" && orden.domicilio && (
                       <span>
                         <span className="text-gray-500">Dirección: </span>
                         <span className="text-white font-semibold">{orden.domicilio}</span>
-                      </span>
-                    )}
-                    {orden.sucursal && (
-                      <span>
-                        <span className="text-gray-500">Sucursal: </span>
-                        <span className="text-white font-semibold">{orden.sucursal.nombre}</span>
                       </span>
                     )}
                     {orden.cuponCode && (

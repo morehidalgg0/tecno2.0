@@ -7,16 +7,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
 import { esImagenValida } from "@/lib/utils";
-import { ArrowLeft, Check, Plus, Minus, Loader2, Info, MapPin } from "lucide-react";
-
-interface StockInfo {
-  sucursalId: string;
-  cantidad: number;
-  sucursal: {
-    nombre: string;
-    ciudad: string;
-  };
-}
+import { ArrowLeft, Check, Plus, Minus, Loader2, ShoppingCart } from "lucide-react";
 
 interface Producto {
   id: string;
@@ -26,16 +17,14 @@ interface Producto {
   precio: number;
   imagenUrl: string;
   specs: Record<string, unknown>;
-  stocks: StockInfo[];
+  stocks: Array<{ sucursalId: string; cantidad: number }>;
 }
 
 export default function ProductDetail({ params }: { params: Promise<{ id: string }> }) {
-  // Resolve params promise in Next.js 15/16
   const { id } = use(params);
-  
   const router = useRouter();
-  const { sucursalSeleccionada, agregarAlCarrito } = useCart();
-  
+  const { agregarAlCarrito } = useCart();
+
   const [producto, setProducto] = useState<Producto | null>(null);
   const [cargando, setCargando] = useState(true);
   const [cantidad, setCantidad] = useState(1);
@@ -85,19 +74,13 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
     );
   }
 
-  // Buscar stock en la sucursal seleccionada
-  const stockEnSucursalSeleccionada =
-    producto.stocks.find((s) => s.sucursalId === sucursalSeleccionada?.id)?.cantidad || 0;
-  
-  const tieneStock = stockEnSucursalSeleccionada > 0;
+  const stockTotal = producto.stocks.reduce((sum, s) => sum + s.cantidad, 0);
+  const tieneStock = stockTotal > 0;
 
   const handleAgregar = () => {
-    if (cantidad > stockEnSucursalSeleccionada) return;
     agregarAlCarrito(producto, cantidad);
     setProductoAgregado(true);
-    setTimeout(() => {
-      setProductoAgregado(false);
-    }, 2000);
+    setTimeout(() => setProductoAgregado(false), 2000);
   };
 
   return (
@@ -122,15 +105,11 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               src={producto.imagenUrl}
               alt={producto.nombre}
               className="object-cover w-full h-full rounded-xl"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=500";
-              }}
             />
             {!tieneStock && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
                 <span className="text-white text-sm font-extrabold uppercase bg-red-600/80 px-4 py-1.5 rounded-md tracking-wider border border-red-500">
-                  Sin stock en tu sucursal
+                  Sin stock
                 </span>
               </div>
             )}
@@ -154,38 +133,19 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
               <p className="text-3xl sm:text-4xl font-extrabold text-white mt-1">
                 ${producto.precio.toLocaleString("es-AR")}
               </p>
+              <p className="text-xs text-gray-500 mt-1">
+                12x ${Math.round(producto.precio / 12).toLocaleString("es-AR")} sin interés
+              </p>
             </div>
 
-            {/* Branch Stock Display */}
-            <div className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 space-y-3">
-              <div className="flex items-center space-x-2 text-sm text-gray-300">
-                <MapPin className="h-4 w-4 text-primary shrink-0" />
-                <span className="font-semibold text-white">Stock en Sucursales:</span>
-              </div>
-              <div className="space-y-1.5 pl-6">
-                {producto.stocks.map((stock) => {
-                  const isSelected = stock.sucursalId === sucursalSeleccionada?.id;
-                  return (
-                    <div
-                      key={stock.sucursalId}
-                      className={`text-xs flex items-center justify-between py-0.5 ${
-                        isSelected ? "text-white font-bold" : "text-gray-400"
-                      }`}
-                    >
-                      <span>
-                        {stock.sucursal.nombre} {isSelected && <span className="text-primary font-bold">(Actual)</span>}
-                      </span>
-                      <span
-                        className={
-                          stock.cantidad > 0 ? "text-green-500 font-medium" : "text-red-500"
-                        }
-                      >
-                        {stock.cantidad > 0 ? `${stock.cantidad} unid.` : "Sin stock"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+            {/* Stock indicator */}
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold w-fit ${
+              tieneStock
+                ? "bg-green-500/10 text-green-400 ring-1 ring-green-500/20"
+                : "bg-red-500/10 text-red-400 ring-1 ring-red-500/20"
+            }`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${tieneStock ? "bg-green-400" : "bg-red-400"}`} />
+              {tieneStock ? "Disponible" : "Sin stock"}
             </div>
 
             {/* Quantity Selector & Cart button */}
@@ -201,7 +161,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                   </button>
                   <span className="text-white font-bold text-sm select-none">{cantidad}</span>
                   <button
-                    onClick={() => setCantidad(Math.min(stockEnSucursalSeleccionada, cantidad + 1))}
+                    onClick={() => setCantidad(cantidad + 1)}
                     className="p-1 text-gray-400 hover:text-white transition-colors"
                   >
                     <Plus className="h-4 w-4" />
@@ -211,7 +171,7 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 {/* Add Button */}
                 <button
                   onClick={handleAgregar}
-                  className={`flex-1 inline-flex items-center justify-center px-6 py-3 rounded-xl text-sm font-semibold transition-all ${
+                  className={`flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold transition-all ${
                     productoAgregado
                       ? "bg-green-600 text-white"
                       : "bg-primary text-white hover:bg-orange-500 hover:scale-[1.02] active:scale-[0.98]"
@@ -219,20 +179,17 @@ export default function ProductDetail({ params }: { params: Promise<{ id: string
                 >
                   {productoAgregado ? (
                     <>
-                      <Check className="h-4 w-4 mr-2" /> Agregado
+                      <Check className="h-4 w-4" /> Agregado
                     </>
                   ) : (
-                    "Agregar al carrito"
+                    <>
+                      <ShoppingCart className="h-4 w-4" /> Agregar al carrito
+                    </>
                   )}
                 </button>
               </div>
             ) : (
-              <div className="flex items-start p-4 rounded-xl border border-red-500/20 bg-red-950/10 text-xs text-red-400">
-                <Info className="h-4 w-4 mr-2 shrink-0 text-red-500" />
-                <p>
-                  No contamos con stock de este producto en la sucursal seleccionada. Podés cambiar de sucursal arriba para ver disponibilidad o retirar en otra tienda.
-                </p>
-              </div>
+              <p className="text-sm text-gray-500">Este producto no está disponible en este momento.</p>
             )}
 
             {/* Specs Table */}
