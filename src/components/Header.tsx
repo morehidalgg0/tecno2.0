@@ -95,7 +95,7 @@ function HeaderContent() {
               <img
                 src="/logo.png"
                 alt="Güemes"
-                className="h-8 w-auto object-contain"
+                className="h-12 w-auto object-contain"
               />
             </Link>
           </div>
