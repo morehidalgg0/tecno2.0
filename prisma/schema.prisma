@@ -25,6 +25,7 @@ model Producto {
   precio    Float
   imagenUrl String
   specs     Json     // e.g. {"pantalla": "6.1", "memoria": "128GB"}
+  codigoInterno String?
   activo    Boolean  @default(true)
   stocks    Stock[]
   createdAt DateTime @default(now())

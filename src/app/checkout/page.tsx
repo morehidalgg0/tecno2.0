@@ -162,7 +162,7 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al procesar el pago");
 
-      const redirectUrl = data.sandboxInitPoint || data.initPoint;
+      const redirectUrl = data.initPoint || data.sandboxInitPoint;
       if (redirectUrl) {
         window.location.href = redirectUrl;
       } else {
