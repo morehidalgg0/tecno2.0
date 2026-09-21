@@ -22,6 +22,7 @@ export default function CheckoutPage() {
 
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [metodoPago, setMetodoPago] = useState<"MERCADOPAGO" | "GETNET">("MERCADOPAGO");
 
   // Envío
   const [tipoEnvio, setTipoEnvio] = useState<"RETIRO" | "ENVIO">("RETIRO");
@@ -139,7 +140,10 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
-      const res = await fetch("/api/mercadopago/preference", {
+      const endpoint =
+        metodoPago === "GETNET" ? "/api/getnet/payment-intent" : "/api/mercadopago/preference";
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,11 +166,14 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al procesar el pago");
 
-      const redirectUrl = data.initPoint || data.sandboxInitPoint;
+      const redirectUrl =
+        metodoPago === "GETNET" ? data.checkoutUrl : data.initPoint || data.sandboxInitPoint;
       if (redirectUrl) {
         window.location.href = redirectUrl;
       } else {
-        throw new Error("No se obtuvo la URL de pago de Mercado Pago");
+        throw new Error(
+          `No se obtuvo la URL de pago de ${metodoPago === "GETNET" ? "Getnet" : "Mercado Pago"}`
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar el pago");
@@ -441,6 +448,29 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              {/* Medio de pago */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Medio de pago</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { valor: "MERCADOPAGO", nombre: "Mercado Pago" },
+                    { valor: "GETNET", nombre: "Getnet" },
+                  ] as const).map((m) => (
+                    <button
+                      key={m.valor}
+                      onClick={() => setMetodoPago(m.valor)}
+                      className={`p-3 rounded-xl border text-xs font-bold transition-all ${
+                        metodoPago === m.valor
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-zinc-800 text-gray-400 hover:border-zinc-700"
+                      }`}
+                    >
+                      {m.nombre}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {error && (
                 <div className="p-3 text-xs text-red-400 border border-red-500/20 bg-red-950/10 rounded-lg">
                   {error}
@@ -458,7 +488,7 @@ export default function CheckoutPage() {
                   </>
                 ) : (
                   <>
-                    Pagar con Mercado Pago <ArrowRight className="h-4 w-4 ml-2" />
+                    Pagar con {metodoPago === "GETNET" ? "Getnet" : "Mercado Pago"} <ArrowRight className="h-4 w-4 ml-2" />
                   </>
                 )}
               </button>
