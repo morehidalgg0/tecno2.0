@@ -64,6 +64,7 @@ model Orden {
   telefono        String?
   estado          String    @default("PENDIENTE") // PENDIENTE, APROBADO, RECHAZADO, ENVIADO, DESPACHADO
   mercadoPagoId   String?   @unique
+  getnetPaymentIntentId String? @unique
   cuponCode       String?
   clienteEmail    String?
   clienteNombre   String?
