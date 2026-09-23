@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
     // 2. Llamar a Getnet
     const intent = await crearPaymentIntent({
       orderId: orden.id,
+      clienteId: cliente?.id ?? null,
       nombreCompleto: orden.clienteNombre ?? "",
       email: orden.clienteEmail ?? "",
       monto: orden.monto,

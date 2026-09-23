@@ -55,6 +55,7 @@ async function obtenerToken(forzar = false): Promise<string> {
 
 export interface CrearPagoParams {
   orderId: string;
+  clienteId: string | null;
   nombreCompleto: string;
   email: string;
   monto: number;
@@ -73,12 +74,28 @@ function separarNombre(nombreCompleto: string): { firstName: string; lastName: s
   return { firstName: partes.join(" "), lastName };
 }
 
+// El body documentado en el manual está incompleto: la API real de UAT también exige
+// customer_id, customer.name y un array "product" con title/value/quantity (confirmado
+// contra la API real, ya que devuelve el detalle exacto de los campos faltantes).
 export async function crearPaymentIntent(params: CrearPagoParams): Promise<PaymentIntent> {
   const { firstName, lastName } = separarNombre(params.nombreCompleto);
   const body = JSON.stringify({
     order_id: params.orderId,
-    customer: { first_name: firstName, last_name: lastName, email: params.email },
+    customer: {
+      customer_id: params.clienteId ?? params.email,
+      name: params.nombreCompleto,
+      first_name: firstName,
+      last_name: lastName,
+      email: params.email,
+    },
     payment: { currency: "ARS", amount: params.monto },
+    product: [
+      {
+        title: `Compra Tecno Güemes - Orden ${params.orderId}`,
+        value: params.monto,
+        quantity: 1,
+      },
+    ],
   });
 
   const enviar = async (token: string) =>
