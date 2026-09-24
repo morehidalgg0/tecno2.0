@@ -23,6 +23,8 @@ export default function CheckoutPage() {
   const [procesando, setProcesando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [metodoPago, setMetodoPago] = useState<"MERCADOPAGO" | "GETNET">("MERCADOPAGO");
+  // Getnet solo se ofrece cuando está configurado (NEXT_PUBLIC_GETNET_HABILITADO="true")
+  const getnetHabilitado = process.env.NEXT_PUBLIC_GETNET_HABILITADO === "true";
 
   // Envío
   const [tipoEnvio, setTipoEnvio] = useState<"RETIRO" | "ENVIO">("RETIRO");
@@ -449,6 +451,7 @@ export default function CheckoutPage() {
               </div>
 
               {/* Medio de pago */}
+              {getnetHabilitado && (
               <div className="space-y-2">
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Medio de pago</span>
                 <div className="grid grid-cols-2 gap-2">
@@ -470,6 +473,7 @@ export default function CheckoutPage() {
                   ))}
                 </div>
               </div>
+              )}
 
               {error && (
                 <div className="p-3 text-xs text-red-400 border border-red-500/20 bg-red-950/10 rounded-lg">
